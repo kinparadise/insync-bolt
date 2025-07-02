@@ -13,6 +13,7 @@ export default function MeetingsScreen() {
   const router = useRouter();
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [meetingTitle, setMeetingTitle] = useState('');
   const [meetingDate, setMeetingDate] = useState('');
   const [meetingTime, setMeetingTime] = useState('');
@@ -29,6 +30,26 @@ export default function MeetingsScreen() {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  
+  // Recurring meeting states
+  const [recurringTitle, setRecurringTitle] = useState('');
+  const [recurringStartDate, setRecurringStartDate] = useState<Date | null>(null);
+  const [recurringEndDate, setRecurringEndDate] = useState<Date | null>(null);
+  const [recurringTime, setRecurringTime] = useState<Date | null>(null);
+  const [recurringDuration, setRecurringDuration] = useState(30);
+  const [recurringPattern, setRecurringPattern] = useState('weekly');
+  const [recurringInterval, setRecurringInterval] = useState(1);
+  const [recurringDays, setRecurringDays] = useState<string[]>([]);
+  const [recurringParticipants, setRecurringParticipants] = useState<string[]>([]);
+  const [recurringParticipantInput, setRecurringParticipantInput] = useState('');
+  const [recurringAgenda, setRecurringAgenda] = useState('');
+  const [recurringReminder, setRecurringReminder] = useState(false);
+  const [recurringReminderMinutes, setRecurringReminderMinutes] = useState(10);
+  const [showRecurringDatePicker, setShowRecurringDatePicker] = useState(false);
+  const [showRecurringEndDatePicker, setShowRecurringEndDatePicker] = useState(false);
+  const [showRecurringTimePicker, setShowRecurringTimePicker] = useState(false);
+  const [recurringCurrentMonth, setRecurringCurrentMonth] = useState(new Date());
+  const [recurringEndCurrentMonth, setRecurringEndCurrentMonth] = useState(new Date());
 
   // Helper to format date and time
   const formatDate = (date: Date | null) => date ? date.toLocaleDateString() : '';
@@ -262,7 +283,195 @@ export default function MeetingsScreen() {
   };
 
   const handleRecurringMeetings = () => {
-    Alert.alert('Recurring Meetings', 'This feature allows you to set up recurring meetings. Coming soon!');
+    setShowRecurringModal(true);
+  };
+
+  const handleScheduleRecurringMeeting = async () => {
+    if (!recurringTitle.trim()) {
+      Alert.alert('Error', 'Please enter a meeting title');
+      return;
+    }
+    if (!recurringStartDate) {
+      Alert.alert('Error', 'Please select a start date');
+      return;
+    }
+    if (!recurringEndDate) {
+      Alert.alert('Error', 'Please select an end date');
+      return;
+    }
+    if (!recurringTime) {
+      Alert.alert('Error', 'Please select a time');
+      return;
+    }
+    if (recurringEndDate <= recurringStartDate) {
+      Alert.alert('Error', 'End date must be after start date');
+      return;
+    }
+    if (recurringPattern === 'weekly' && recurringDays.length === 0) {
+      Alert.alert('Error', 'Please select at least one day of the week');
+      return;
+    }
+
+    console.log('Starting recurring meeting schedule process...');
+    console.log('Recurring meeting details:', {
+      title: recurringTitle,
+      startDate: recurringStartDate,
+      endDate: recurringEndDate,
+      time: recurringTime,
+      pattern: recurringPattern,
+      interval: recurringInterval,
+      days: recurringDays,
+      participants: recurringParticipants,
+      agenda: recurringAgenda
+    });
+
+    try {
+      // Request calendar permissions
+      console.log('Requesting calendar permissions...');
+      const { status } = await CalendarAPI.requestCalendarPermissionsAsync();
+      console.log('Calendar permission status:', status);
+      
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Calendar permission is required to schedule recurring meetings.');
+        return;
+      }
+
+      // Get default calendar
+      console.log('Getting calendars...');
+      const calendars = await CalendarAPI.getCalendarsAsync(CalendarAPI.EntityTypes.EVENT);
+      console.log('Available calendars:', calendars.length);
+      
+      const defaultCalendar = calendars.find(cal => cal.isPrimary) || calendars[0];
+      console.log('Selected calendar:', defaultCalendar?.title || 'None');
+
+      if (!defaultCalendar) {
+        Alert.alert('No Calendar Found', 'No calendar found on your device.');
+        return;
+      }
+
+      // Generate recurring events
+      console.log('Generating recurring events...');
+      const events = generateRecurringEvents();
+      console.log(`Generated ${events.length} events`);
+      
+      let createdCount = 0;
+
+      for (const eventDetails of events) {
+        try {
+          console.log('Creating event:', eventDetails.title, 'at', eventDetails.startDate);
+          const eventId = await CalendarAPI.createEventAsync(defaultCalendar.id, eventDetails);
+          console.log('Event created with ID:', eventId);
+          createdCount++;
+        } catch (error) {
+          console.error('Failed to create event:', error);
+        }
+      }
+
+      const patternText = recurringPattern === 'daily' ? 'daily' :
+                         recurringPattern === 'weekly' ? `weekly on ${recurringDays.map(d => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ')}` :
+                         `monthly every ${recurringInterval} month(s)`;
+      
+      Alert.alert(
+        'Success!', 
+        `Created ${createdCount} recurring meetings for "${recurringTitle}"\n\nPattern: ${patternText}\nTime: ${recurringTime ? formatTime(recurringTime) : 'N/A'}\nDuration: ${recurringDuration} minutes\nCalendar: ${defaultCalendar.title}`,
+        [
+          { text: 'OK', onPress: () => {
+            // Reset form and close modal
+            setShowRecurringModal(false);
+            setRecurringTitle('');
+            setRecurringStartDate(null);
+            setRecurringEndDate(null);
+            setRecurringTime(null);
+            setRecurringDays([]);
+            setRecurringParticipants([]);
+            setRecurringAgenda('');
+            setRecurringReminder(false);
+            setRecurringReminderMinutes(10);
+            setRecurringDuration(30);
+            setRecurringPattern('weekly');
+            setRecurringInterval(1);
+          }}
+        ]
+      );
+
+    } catch (error) {
+      console.error('Recurring meeting error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Error', `Failed to schedule recurring meetings: ${errorMessage}`);
+    }
+  };
+
+  const generateRecurringEvents = () => {
+    const events = [];
+    const startDate = new Date(recurringStartDate!);
+    const endDate = new Date(recurringEndDate!);
+    const time = new Date(recurringTime!);
+    
+    // Set the time on start date
+    startDate.setHours(time.getHours(), time.getMinutes(), 0, 0);
+    
+    let currentDate = new Date(startDate);
+    
+    while (currentDate <= endDate) {
+      if (recurringPattern === 'weekly') {
+        const dayOfWeek = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+        if (recurringDays.includes(dayOfWeek)) {
+          events.push({
+            title: recurringTitle,
+            startDate: new Date(currentDate),
+            endDate: new Date(currentDate.getTime() + recurringDuration * 60000),
+            location: 'InSync Meeting',
+            notes: recurringAgenda || undefined,
+            alarms: recurringReminder ? [{ relativeOffset: -recurringReminderMinutes }] : undefined,
+            attendees: recurringParticipants.length > 0 ? recurringParticipants.map(email => ({ email })) : undefined,
+          });
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      } else if (recurringPattern === 'daily') {
+        events.push({
+          title: recurringTitle,
+          startDate: new Date(currentDate),
+          endDate: new Date(currentDate.getTime() + recurringDuration * 60000),
+          location: 'InSync Meeting',
+          notes: recurringAgenda || undefined,
+          alarms: recurringReminder ? [{ relativeOffset: -recurringReminderMinutes }] : undefined,
+          attendees: recurringParticipants.length > 0 ? recurringParticipants.map(email => ({ email })) : undefined,
+        });
+        currentDate.setDate(currentDate.getDate() + recurringInterval);
+      } else if (recurringPattern === 'monthly') {
+        events.push({
+          title: recurringTitle,
+          startDate: new Date(currentDate),
+          endDate: new Date(currentDate.getTime() + recurringDuration * 60000),
+          location: 'InSync Meeting',
+          notes: recurringAgenda || undefined,
+          alarms: recurringReminder ? [{ relativeOffset: -recurringReminderMinutes }] : undefined,
+          attendees: recurringParticipants.length > 0 ? recurringParticipants.map(email => ({ email })) : undefined,
+        });
+        currentDate.setMonth(currentDate.getMonth() + recurringInterval);
+      }
+    }
+    
+    return events;
+  };
+
+  const toggleRecurringDay = (day: string) => {
+    if (recurringDays.includes(day)) {
+      setRecurringDays(recurringDays.filter(d => d !== day));
+    } else {
+      setRecurringDays([...recurringDays, day]);
+    }
+  };
+
+  const addRecurringParticipant = () => {
+    if (recurringParticipantInput.trim() && !recurringParticipants.includes(recurringParticipantInput.trim())) {
+      setRecurringParticipants([...recurringParticipants, recurringParticipantInput.trim()]);
+      setRecurringParticipantInput('');
+    }
+  };
+
+  const removeRecurringParticipant = (idx: number) => {
+    setRecurringParticipants(recurringParticipants.filter((_, i) => i !== idx));
   };
 
   const copyMeetingId = (meetingId: string) => {
@@ -782,6 +991,493 @@ export default function MeetingsScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Recurring Meetings Modal */}
+        <Modal
+          visible={showRecurringModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowRecurringModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { paddingBottom: 0 }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Schedule Recurring Meeting</Text>
+                <TouchableOpacity 
+                  onPress={() => setShowRecurringModal(false)}
+                  style={styles.modalClose}
+                >
+                  <X size={24} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ maxHeight: 600 }} showsVerticalScrollIndicator={false}>
+                <View style={styles.modalBody}>
+                  {/* Meeting Title */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Meeting Title</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      value={recurringTitle}
+                      onChangeText={setRecurringTitle}
+                      placeholder="Enter meeting title"
+                      placeholderTextColor={theme.colors.textTertiary}
+                    />
+                  </View>
+
+                  {/* Date Range */}
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                      <Text style={styles.inputLabel}>Start Date</Text>
+                      <TouchableOpacity
+                        style={styles.textInput}
+                        onPress={() => setShowRecurringDatePicker(true)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={{ color: recurringStartDate ? theme.colors.text : theme.colors.textTertiary }}>
+                          {recurringStartDate ? formatDate(recurringStartDate) : 'Select start date'}
+                        </Text>
+                      </TouchableOpacity>
+                      
+                      {/* Custom Calendar Modal for Start Date */}
+                      <Modal
+                        visible={showRecurringDatePicker}
+                        transparent
+                        animationType="slide"
+                        onRequestClose={() => setShowRecurringDatePicker(false)}
+                      >
+                        <View style={styles.modalOverlay}>
+                          <View style={[styles.modalContent, { maxWidth: 350, width: '100%' }]}>
+                            <View style={styles.modalHeader}>
+                              <Text style={styles.modalTitle}>Select Start Date</Text>
+                              <TouchableOpacity onPress={() => setShowRecurringDatePicker(false)}>
+                                <X size={24} color={theme.colors.textSecondary} />
+                              </TouchableOpacity>
+                            </View>
+                            <View style={styles.calendarContainer}>
+                              {/* Calendar Header */}
+                              <View style={styles.calendarHeader}>
+                                <TouchableOpacity onPress={() => {
+                                  setRecurringCurrentMonth(prev => {
+                                    const newMonth = new Date(prev);
+                                    newMonth.setMonth(prev.getMonth() - 1);
+                                    return newMonth;
+                                  });
+                                }}>
+                                  <ChevronLeft size={20} color={theme.colors.primary} />
+                                </TouchableOpacity>
+                                <Text style={styles.calendarMonthText}>
+                                  {recurringCurrentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                </Text>
+                                <TouchableOpacity onPress={() => {
+                                  setRecurringCurrentMonth(prev => {
+                                    const newMonth = new Date(prev);
+                                    newMonth.setMonth(prev.getMonth() + 1);
+                                    return newMonth;
+                                  });
+                                }}>
+                                  <ChevronRight size={20} color={theme.colors.primary} />
+                                </TouchableOpacity>
+                              </View>
+                              
+                              {/* Calendar Days Header */}
+                              <View style={styles.calendarDaysHeader}>
+                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                                  <Text key={day} style={styles.calendarDayHeaderText}>
+                                    {day}
+                                  </Text>
+                                ))}
+                              </View>
+                              
+                              {/* Calendar Grid */}
+                              <View style={styles.calendarGrid}>
+                                {(() => {
+                                  const daysInMonth = new Date(recurringCurrentMonth.getFullYear(), recurringCurrentMonth.getMonth() + 1, 0).getDate();
+                                  const firstDay = new Date(recurringCurrentMonth.getFullYear(), recurringCurrentMonth.getMonth(), 1).getDay();
+                                  const days = [];
+                                  
+                                  // Add empty cells for days before the first day of the month
+                                  for (let i = 0; i < firstDay; i++) {
+                                    days.push(<View key={`empty-${i}`} style={styles.calendarDay} />);
+                                  }
+                                  
+                                  // Add days of the month
+                                  for (let day = 1; day <= daysInMonth; day++) {
+                                    const currentDate = new Date(recurringCurrentMonth.getFullYear(), recurringCurrentMonth.getMonth(), day);
+                                    const isToday = new Date().toDateString() === currentDate.toDateString();
+                                    const isSelected = recurringStartDate && recurringStartDate.toDateString() === currentDate.toDateString();
+                                    
+                                    days.push(
+                                      <TouchableOpacity
+                                        key={day}
+                                        style={[
+                                          styles.calendarDay,
+                                          isToday && styles.calendarDayToday,
+                                          isSelected && styles.calendarDaySelected
+                                        ]}
+                                        onPress={() => {
+                                          setRecurringStartDate(currentDate);
+                                          setShowRecurringDatePicker(false);
+                                        }}
+                                      >
+                                        <Text style={[
+                                          styles.calendarDayText,
+                                          isToday && styles.calendarDayTextToday,
+                                          isSelected && styles.calendarDayTextSelected
+                                        ]}>
+                                          {day}
+                                        </Text>
+                                      </TouchableOpacity>
+                                    );
+                                  }
+                                  
+                                  return days;
+                                })()}
+                              </View>
+                            </View>
+                          </View>
+                        </View>
+                      </Modal>
+                    </View>
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                      <Text style={styles.inputLabel}>End Date</Text>
+                      <TouchableOpacity
+                        style={styles.textInput}
+                        onPress={() => setShowRecurringEndDatePicker(true)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={{ color: recurringEndDate ? theme.colors.text : theme.colors.textTertiary }}>
+                          {recurringEndDate ? formatDate(recurringEndDate) : 'Select end date'}
+                        </Text>
+                      </TouchableOpacity>
+                      
+                      {/* Custom Calendar Modal for End Date */}
+                      <Modal
+                        visible={showRecurringEndDatePicker}
+                        transparent
+                        animationType="slide"
+                        onRequestClose={() => setShowRecurringEndDatePicker(false)}
+                      >
+                        <View style={styles.modalOverlay}>
+                          <View style={[styles.modalContent, { maxWidth: 350, width: '100%' }]}>
+                            <View style={styles.modalHeader}>
+                              <Text style={styles.modalTitle}>Select End Date</Text>
+                              <TouchableOpacity onPress={() => setShowRecurringEndDatePicker(false)}>
+                                <X size={24} color={theme.colors.textSecondary} />
+                              </TouchableOpacity>
+                            </View>
+                            <View style={styles.calendarContainer}>
+                              {/* Calendar Header */}
+                              <View style={styles.calendarHeader}>
+                                <TouchableOpacity onPress={() => {
+                                  setRecurringEndCurrentMonth(prev => {
+                                    const newMonth = new Date(prev);
+                                    newMonth.setMonth(prev.getMonth() - 1);
+                                    return newMonth;
+                                  });
+                                }}>
+                                  <ChevronLeft size={20} color={theme.colors.primary} />
+                                </TouchableOpacity>
+                                <Text style={styles.calendarMonthText}>
+                                  {recurringEndCurrentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                </Text>
+                                <TouchableOpacity onPress={() => {
+                                  setRecurringEndCurrentMonth(prev => {
+                                    const newMonth = new Date(prev);
+                                    newMonth.setMonth(prev.getMonth() + 1);
+                                    return newMonth;
+                                  });
+                                }}>
+                                  <ChevronRight size={20} color={theme.colors.primary} />
+                                </TouchableOpacity>
+                              </View>
+                              
+                              {/* Calendar Days Header */}
+                              <View style={styles.calendarDaysHeader}>
+                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                                  <Text key={day} style={styles.calendarDayHeaderText}>
+                                    {day}
+                                  </Text>
+                                ))}
+                              </View>
+                              
+                              {/* Calendar Grid */}
+                              <View style={styles.calendarGrid}>
+                                {(() => {
+                                  const daysInMonth = new Date(recurringEndCurrentMonth.getFullYear(), recurringEndCurrentMonth.getMonth() + 1, 0).getDate();
+                                  const firstDay = new Date(recurringEndCurrentMonth.getFullYear(), recurringEndCurrentMonth.getMonth(), 1).getDay();
+                                  const days = [];
+                                  
+                                  // Add empty cells for days before the first day of the month
+                                  for (let i = 0; i < firstDay; i++) {
+                                    days.push(<View key={`empty-${i}`} style={styles.calendarDay} />);
+                                  }
+                                  
+                                  // Add days of the month
+                                  for (let day = 1; day <= daysInMonth; day++) {
+                                    const currentDate = new Date(recurringEndCurrentMonth.getFullYear(), recurringEndCurrentMonth.getMonth(), day);
+                                    const isToday = new Date().toDateString() === currentDate.toDateString();
+                                    const isSelected = recurringEndDate && recurringEndDate.toDateString() === currentDate.toDateString();
+                                    
+                                    days.push(
+                                      <TouchableOpacity
+                                        key={day}
+                                        style={[
+                                          styles.calendarDay,
+                                          isToday && styles.calendarDayToday,
+                                          isSelected && styles.calendarDaySelected
+                                        ]}
+                                        onPress={() => {
+                                          setRecurringEndDate(currentDate);
+                                          setShowRecurringEndDatePicker(false);
+                                        }}
+                                      >
+                                        <Text style={[
+                                          styles.calendarDayText,
+                                          isToday && styles.calendarDayTextToday,
+                                          isSelected && styles.calendarDayTextSelected
+                                        ]}>
+                                          {day}
+                                        </Text>
+                                      </TouchableOpacity>
+                                    );
+                                  }
+                                  
+                                  return days;
+                                })()}
+                              </View>
+                            </View>
+                          </View>
+                        </View>
+                      </Modal>
+                    </View>
+                  </View>
+
+                  {/* Time */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Time</Text>
+                    <TouchableOpacity
+                      style={styles.textInput}
+                      onPress={() => setShowRecurringTimePicker(true)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ color: recurringTime ? theme.colors.text : theme.colors.textTertiary }}>
+                        {recurringTime ? formatTime(recurringTime) : 'Select time'}
+                      </Text>
+                    </TouchableOpacity>
+                    {showRecurringTimePicker && (
+                      <DateTimePicker
+                        value={recurringTime || new Date()}
+                        mode="time"
+                        display="default"
+                        onChange={(event, date) => {
+                          setShowRecurringTimePicker(false);
+                          if (date) {
+                            setRecurringTime(date);
+                          }
+                        }}
+                      />
+                    )}
+                  </View>
+
+                  {/* Duration */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Duration</Text>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      {[15, 30, 60, 90].map((min) => (
+                        <TouchableOpacity
+                          key={min}
+                          style={[
+                            styles.durationButton,
+                            recurringDuration === min && styles.durationButtonActive
+                          ]}
+                          onPress={() => setRecurringDuration(min)}
+                        >
+                          <Text style={[
+                            styles.durationButtonText,
+                            recurringDuration === min && styles.durationButtonTextActive
+                          ]}>{min} min</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Recurrence Pattern */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Recurrence Pattern</Text>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      {['daily', 'weekly', 'monthly'].map((pattern) => (
+                        <TouchableOpacity
+                          key={pattern}
+                          style={[
+                            styles.durationButton,
+                            recurringPattern === pattern && styles.durationButtonActive
+                          ]}
+                          onPress={() => setRecurringPattern(pattern)}
+                        >
+                          <Text style={[
+                            styles.durationButtonText,
+                            recurringPattern === pattern && styles.durationButtonTextActive
+                          ]}>{pattern.charAt(0).toUpperCase() + pattern.slice(1)}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Interval */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Interval</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <TouchableOpacity
+                        style={styles.reminderButton}
+                        onPress={() => setRecurringInterval(Math.max(1, recurringInterval - 1))}
+                      >
+                        <Text style={styles.reminderButtonText}>-</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.reminderMinutesText}>{recurringInterval}</Text>
+                      <TouchableOpacity
+                        style={styles.reminderButton}
+                        onPress={() => setRecurringInterval(Math.min(12, recurringInterval + 1))}
+                      >
+                        <Text style={styles.reminderButtonText}>+</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.inputLabel}>
+                        {recurringPattern === 'daily' ? 'days' : 
+                         recurringPattern === 'weekly' ? 'weeks' : 'months'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Weekly Days Selection */}
+                  {recurringPattern === 'weekly' && (
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Days of the Week</Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                        {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
+                          <TouchableOpacity
+                            key={day}
+                            style={[
+                              styles.durationButton,
+                              recurringDays.includes(day) && styles.durationButtonActive
+                            ]}
+                            onPress={() => toggleRecurringDay(day)}
+                          >
+                            <Text style={[
+                              styles.durationButtonText,
+                              recurringDays.includes(day) && styles.durationButtonTextActive
+                            ]}>{day.charAt(0).toUpperCase() + day.slice(1, 3)}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Participants */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Participants</Text>
+                    <View style={styles.chipInputContainer}>
+                      {recurringParticipants.map((p, idx) => (
+                        <View key={p} style={styles.chip}>
+                          <Text style={styles.chipText}>{p}</Text>
+                          <TouchableOpacity onPress={() => removeRecurringParticipant(idx)}>
+                            <X size={14} color={theme.colors.textTertiary} />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                      <TextInput
+                        style={styles.chipTextInput}
+                        value={recurringParticipantInput}
+                        onChangeText={setRecurringParticipantInput}
+                        placeholder="Add email/name"
+                        placeholderTextColor={theme.colors.textTertiary}
+                        onSubmitEditing={addRecurringParticipant}
+                        blurOnSubmit={false}
+                      />
+                    </View>
+                  </View>
+
+                  {/* Agenda */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Agenda / Notes</Text>
+                    <TextInput
+                      style={[styles.textInput, { minHeight: 60 }]}
+                      value={recurringAgenda}
+                      onChangeText={setRecurringAgenda}
+                      placeholder="Add agenda or notes..."
+                      placeholderTextColor={theme.colors.textTertiary}
+                      multiline
+                    />
+                  </View>
+
+                  {/* Reminder */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Reminder</Text>
+                    <View style={styles.reminderContainer}>
+                      <TouchableOpacity
+                        style={[styles.reminderToggle, recurringReminder && styles.reminderToggleActive]}
+                        onPress={() => setRecurringReminder(!recurringReminder)}
+                      >
+                        <Text style={styles.reminderToggleText}>
+                          {recurringReminder ? `${recurringReminderMinutes} min before` : 'Off'}
+                        </Text>
+                      </TouchableOpacity>
+                      
+                      {recurringReminder && (
+                        <View style={styles.reminderControls}>
+                          <TouchableOpacity
+                            style={styles.reminderButton}
+                            onPress={() => setRecurringReminderMinutes(Math.max(5, recurringReminderMinutes - 5))}
+                          >
+                            <Text style={styles.reminderButtonText}>-</Text>
+                          </TouchableOpacity>
+                          <Text style={styles.reminderMinutesText}>{recurringReminderMinutes} min</Text>
+                          <TouchableOpacity
+                            style={styles.reminderButton}
+                            onPress={() => setRecurringReminderMinutes(Math.min(60, recurringReminderMinutes + 5))}
+                          >
+                            <Text style={styles.reminderButtonText}>+</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Summary Preview */}
+                  <View style={styles.summaryCard}>
+                    <Text style={styles.summaryTitle}>Recurring Meeting Summary</Text>
+                    <Text style={styles.summaryItem}><Text style={styles.summaryLabel}>Title:</Text> {`${recurringTitle || '-'}`}</Text>
+                    <Text style={styles.summaryItem}><Text style={styles.summaryLabel}>Start Date:</Text> {recurringStartDate ? formatDate(recurringStartDate) : '-'}</Text>
+                    <Text style={styles.summaryItem}><Text style={styles.summaryLabel}>End Date:</Text> {recurringEndDate ? formatDate(recurringEndDate) : '-'}</Text>
+                    <Text style={styles.summaryItem}><Text style={styles.summaryLabel}>Time:</Text> {recurringTime ? formatTime(recurringTime) : '-'}</Text>
+                    <Text style={styles.summaryItem}><Text style={styles.summaryLabel}>Duration:</Text> {`${recurringDuration} min`}</Text>
+                    <Text style={styles.summaryItem}><Text style={styles.summaryLabel}>Pattern:</Text> {`${recurringPattern} (every ${recurringInterval} ${recurringPattern === 'daily' ? 'day(s)' : recurringPattern === 'weekly' ? 'week(s)' : 'month(s)'})`}</Text>
+                    {recurringPattern === 'weekly' && (
+                      <Text style={styles.summaryItem}><Text style={styles.summaryLabel}>Days:</Text> {recurringDays.length > 0 ? recurringDays.map(d => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ') : '-'}</Text>
+                    )}
+                    <Text style={styles.summaryItem}><Text style={styles.summaryLabel}>Participants:</Text> {recurringParticipants.length > 0 ? recurringParticipants.join(', ') : '-'}</Text>
+                    <Text style={styles.summaryItem}><Text style={styles.summaryLabel}>Reminder:</Text> {recurringReminder ? `${recurringReminderMinutes} min before` : 'Off'}</Text>
+                    <Text style={styles.summaryItem}><Text style={styles.summaryLabel}>Agenda:</Text> {`${recurringAgenda || '-'}`}</Text>
+                  </View>
+
+                  {/* Actions */}
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity 
+                      style={styles.cancelButton}
+                      onPress={() => setShowRecurringModal(false)}
+                    >
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.scheduleButton}
+                      onPress={handleScheduleRecurringMeeting}
+                    >
+                      <Text style={styles.scheduleButtonText}>Schedule Recurring</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
             </View>
           </View>
         </Modal>
