@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Modal, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Modal, KeyboardAvoidingView, Platform, Pressable, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Phone, Video, MessageCircle, UserPlus, X, Mail, Send, Check, CheckCheck } from 'lucide-react-native';
 import { useState } from 'react';
@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Dimensions } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import dayjs from 'dayjs';
+import { startInAppCall } from '@/components/InAppCallManager';
 
 export default function ContactsScreen() {
   const { theme } = useTheme();
@@ -25,6 +26,8 @@ export default function ContactsScreen() {
   const [selectedDeviceContacts, setSelectedDeviceContacts] = useState<string[]>([]);
   const [showContactDetails, setShowContactDetails] = useState(false);
   const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [showCallOptions, setShowCallOptions] = useState(false);
+  const [callTarget, setCallTarget] = useState<ContactType | null>(null);
   const [contacts, setContacts] = useState<ContactType[]>([
     {
       id: '1',
@@ -34,15 +37,17 @@ export default function ContactsScreen() {
       avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
       department: 'Design',
       lastSeen: 'Active now',
+      phone: '+233 257338605',
     },
     {
       id: '2',
-      name: 'Jason Miller',
+      name: 'Ashun-Sarpy Faithful',
       email: 'jason@company.com',
       status: 'away',
       avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
       department: 'Engineering',
       lastSeen: '5 minutes ago',
+      phone: '+233 537050528',
     },
     {
       id: '3',
@@ -52,6 +57,7 @@ export default function ContactsScreen() {
       avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
       department: 'Marketing',
       lastSeen: '2 hours ago',
+      phone: '+233 594707413',
     },
     {
       id: '4',
@@ -61,6 +67,7 @@ export default function ContactsScreen() {
       avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
       department: 'Product',
       lastSeen: 'Active now',
+      phone: '+233 594707414',
     },
     {
       id: '5',
@@ -70,6 +77,7 @@ export default function ContactsScreen() {
       avatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
       department: 'Sales',
       lastSeen: 'In a meeting',
+      phone: '+233 594707415',
     },
   ]);
 
@@ -164,7 +172,65 @@ export default function ContactsScreen() {
     setSelectedDeviceContacts([]);
   };
 
+  const handleShowCallOptions = (contact: ContactType) => {
+    setCallTarget(contact);
+    setShowCallOptions(true);
+  };
+
+  const handleInAppCall = () => {
+    if (callTarget) {
+      setShowCallOptions(false);
+      startInAppCall(callTarget);
+    }
+  };
+
+  const handleDevicePhoneCall = async () => {
+    if (callTarget && callTarget.phone) {
+      setShowCallOptions(false);
+      // Trim spaces from the phone number
+      const phoneNumber = callTarget.phone.replace(/\s+/g, '');
+      const url = `tel:${phoneNumber}`;
+      try {
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          Linking.openURL(url);
+        } else {
+          Alert.alert('Error', 'Your device does not support phone calls.');
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Failed to initiate phone call.');
+      }
+    }
+  };
+
   const styles = createStyles(theme);
+
+  // Add these styles for call options modal buttons
+  const callOptionButton = {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center' as const,
+    marginBottom: 12,
+  };
+  const callOptionButtonText = {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#ffffff',
+  };
+  const callOptionCancelButton = {
+    backgroundColor: theme.colors.card,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center' as const,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  };
+  const callOptionCancelButtonText = {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: theme.colors.textSecondary,
+  };
 
   return (
     <ThemedLinearGradient style={{ ...styles.container, height: usableHeight }}>
@@ -234,7 +300,7 @@ export default function ContactsScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.actionButton}
-                    onPress={() => handleStartCall(contact.id, false)}
+                    onPress={() => handleShowCallOptions(contact)}
                   >
                     <Phone color={theme.colors.primary} size={20} />
                   </TouchableOpacity>
@@ -396,6 +462,38 @@ export default function ContactsScreen() {
                   </View>
                 </View>
               )}
+            </View>
+          </View>
+        </Modal>
+
+        {/* Call Options Modal */}
+        <Modal
+          visible={showCallOptions}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowCallOptions(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Call Options</Text>
+                <TouchableOpacity onPress={() => setShowCallOptions(false)} style={styles.modalClose}>
+                  <X size={24} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <View style={[styles.modalBody, { gap: 0, alignItems: 'stretch' as const }]}>
+                <TouchableOpacity style={callOptionButton} onPress={handleInAppCall}>
+                  <Text style={callOptionButtonText}>Call via InSync (In-app)</Text>
+                </TouchableOpacity>
+                {callTarget && callTarget.phone ? (
+                  <TouchableOpacity style={callOptionButton} onPress={handleDevicePhoneCall}>
+                    <Text style={callOptionButtonText}>Call via Device Phone</Text>
+                  </TouchableOpacity>
+                ) : null}
+                <TouchableOpacity style={callOptionCancelButton} onPress={() => setShowCallOptions(false)}>
+                  <Text style={callOptionCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
