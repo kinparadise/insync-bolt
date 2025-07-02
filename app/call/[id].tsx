@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, Modal, TextInput, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Mic, Video, MicOff, VideoOff, PhoneOff, Users, MessageCircle, Monitor, Settings, MoveHorizontal as MoreHorizontal, Hand, Camera, Volume2, Send, X, Share, UserPlus, Pause, Play, Square, UserX, Shuffle, Plus, CreditCard as Edit3, Trash2, ArrowRight } from 'lucide-react-native';
+import { Mic, Video, MicOff, VideoOff, PhoneOff, Users, MessageCircle, Monitor, Settings, MoveHorizontal as MoreHorizontal, Hand, Camera, Volume2, Send, X, Share, UserPlus, Pause, Play, Square, UserX, Shuffle, Plus, CreditCard as Edit3, Trash2, ArrowRight, GraduationCap } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -457,6 +457,8 @@ export default function CallScreen() {
     );
   };
 
+  const [showClassroomHub, setShowClassroomHub] = useState(false);
+
   const styles = createStyles(theme);
 
   return (
@@ -627,6 +629,16 @@ export default function CallScreen() {
               <MoreHorizontal color={showMoreOptions ? "#ffffff" : theme.colors.text} size={18} />
               <Text style={[styles.secondaryButtonText, showMoreOptions && styles.secondaryButtonTextActive]}>
                 More
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.secondaryButton, showClassroomHub && styles.secondaryButtonActive]}
+              onPress={() => setShowClassroomHub(true)}
+            >
+              <GraduationCap color={showClassroomHub ? "#ffffff" : theme.colors.text} size={18} />
+              <Text style={[styles.secondaryButtonText, showClassroomHub && styles.secondaryButtonTextActive]}>
+                Classroom
               </Text>
             </TouchableOpacity>
           </View>
@@ -969,6 +981,30 @@ export default function CallScreen() {
           onClose={handleSummaryClose}
           meetingData={meetingData}
         />
+
+        {/* Classroom Hub Modal */}
+        <Modal
+          visible={showClassroomHub}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowClassroomHub(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Virtual Classroom</Text>
+                <TouchableOpacity onPress={() => setShowClassroomHub(false)}>
+                  <X size={24} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.modalBody}>
+                <Text style={{ color: theme.colors.textSecondary, fontSize: 16, textAlign: 'center', marginTop: 40 }}>
+                  All your advanced tools (whiteboard, notes, polls, breakouts, etc.) will be accessible here!
+                </Text>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </ThemedLinearGradient>
   );

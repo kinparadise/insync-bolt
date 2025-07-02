@@ -6,15 +6,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
+import { useUser } from '@/contexts/UserContext';
 
 export default function EditProfileScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const { user, updateUser } = useUser();
 
-  // Mock user data (replace with real user data from context/store)
-  const [avatar, setAvatar] = useState<string | null>(null);
-  const [name, setName] = useState('Alex');
-  const [email, setEmail] = useState('alex@email.com');
+  const [avatar, setAvatar] = useState<string | null>(user.avatar);
+  const [name, setName] = useState(user.name);
+  const [email, setEmail] = useState(user.email);
 
   const pickAvatar = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -29,7 +30,7 @@ export default function EditProfileScreen() {
   };
 
   const handleSave = () => {
-    // Save profile info (send to backend or update context/store)
+    updateUser({ avatar, name, email });
     Alert.alert('Profile Updated', 'Your profile information has been saved.');
     router.back();
   };

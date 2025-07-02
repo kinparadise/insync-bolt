@@ -5,6 +5,7 @@ import { Mic, Video, MicOff, VideoOff, Settings, Users, ArrowLeft } from 'lucide
 import { useState } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useUser } from '@/contexts/UserContext';
 
 export default function JoinScreen() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function JoinScreen() {
   const { theme } = useTheme();
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
+  const { user } = useUser();
 
   const meetingInfo = {
     title: 'Team Standup Meeting',
@@ -54,7 +56,7 @@ export default function JoinScreen() {
           <View style={styles.previewContainer}>
             <View style={styles.videoPreview}>
               <Image 
-                source={{ uri: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=2' }}
+                source={user.avatar ? { uri: user.avatar } : require('../../assets/images/Insync logo.png')}
                 style={styles.previewImage}
                 resizeMode="cover"
               />

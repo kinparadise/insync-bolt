@@ -1,6 +1,6 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Modal, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, Phone, Video, MessageCircle, UserPlus, X, Mail } from 'lucide-react-native';
+import { Search, Phone, Video, MessageCircle, UserPlus, X, Mail, Send, Check, CheckCheck } from 'lucide-react-native';
 import { useState } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -8,6 +8,8 @@ import { useRouter } from 'expo-router';
 import { AnimatedBackgroundCircle } from '@/components/AnimatedBackgroundCircle';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Dimensions } from 'react-native';
+import * as Contacts from 'expo-contacts';
+import dayjs from 'dayjs';
 
 export default function ContactsScreen() {
   const { theme } = useTheme();
@@ -18,8 +20,12 @@ export default function ContactsScreen() {
   const insets = useSafeAreaInsets();
   const { height: deviceHeight } = Dimensions.get('window');
   const usableHeight = deviceHeight - insets.top - insets.bottom;
-
-  const contacts = [
+  const [showDeviceContactsModal, setShowDeviceContactsModal] = useState(false);
+  const [deviceContacts, setDeviceContacts] = useState<any[]>([]);
+  const [selectedDeviceContacts, setSelectedDeviceContacts] = useState<string[]>([]);
+  const [showContactDetails, setShowContactDetails] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [contacts, setContacts] = useState<ContactType[]>([
     {
       id: '1',
       name: 'Emily Johnson',
@@ -65,7 +71,18 @@ export default function ContactsScreen() {
       department: 'Sales',
       lastSeen: 'In a meeting',
     },
-  ];
+  ]);
+
+  type ContactType = {
+    id: string;
+    name: string;
+    email: string;
+    status: string;
+    avatar?: string;
+    department: string;
+    lastSeen: string;
+    phone?: string;
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -113,6 +130,40 @@ export default function ContactsScreen() {
     }
   };
 
+  // Fetch device contacts
+  const handleImportDeviceContacts = async () => {
+    const { status } = await Contacts.requestPermissionsAsync();
+    if (status === 'granted') {
+      const { data } = await Contacts.getContactsAsync({ fields: [Contacts.Fields.Emails, Contacts.Fields.PhoneNumbers, Contacts.Fields.Image] });
+      setDeviceContacts(data);
+      setShowDeviceContactsModal(true);
+    }
+  };
+
+  // Toggle selection
+  const toggleDeviceContact = (id: string) => {
+    setSelectedDeviceContacts((prev) =>
+      prev.includes(id) ? prev.filter((cid) => cid !== id) : [...prev, id]
+    );
+  };
+
+  // Add selected device contacts to in-app contacts
+  const handleAddSelectedDeviceContacts = () => {
+    const toAdd = deviceContacts.filter((c) => selectedDeviceContacts.includes(c.id)).map((c) => ({
+      id: c.id,
+      name: c.name,
+      email: c.emails?.[0]?.email || '',
+      status: 'offline',
+      avatar: c.imageAvailable && c.image ? c.image.uri : undefined,
+      department: '',
+      lastSeen: '',
+      phone: c.phoneNumbers?.[0]?.number || '',
+    }));
+    setContacts((prev) => [...prev, ...toAdd]);
+    setShowDeviceContactsModal(false);
+    setSelectedDeviceContacts([]);
+  };
+
   const styles = createStyles(theme);
 
   return (
@@ -121,12 +172,14 @@ export default function ContactsScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <Text style={styles.title}>Contacts</Text>
-          <TouchableOpacity 
-            style={styles.addButton}
-            onPress={() => setShowInviteModal(true)}
-          >
-            <UserPlus color="#ffffff" size={24} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity style={styles.addButton} onPress={handleImportDeviceContacts}>
+              <UserPlus color="#fff" size={24} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.addButton} onPress={() => setShowInviteModal(true)}>
+              <Mail color="#fff" size={24} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.searchContainer}>
@@ -145,7 +198,12 @@ export default function ContactsScreen() {
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.contactsList}>
             {filteredContacts.map((contact) => (
-              <View key={contact.id} style={styles.contactCard}>
+              <TouchableOpacity
+                key={contact.id}
+                style={styles.contactCard}
+                onPress={() => { setSelectedContact(contact); setShowContactDetails(true); }}
+                activeOpacity={0.85}
+              >
                 <View style={styles.contactInfo}>
                   <View style={styles.avatarContainer}>
                     <Image source={{ uri: contact.avatar }} style={styles.avatar} />
@@ -170,7 +228,7 @@ export default function ContactsScreen() {
                 <View style={styles.contactActions}>
                   <TouchableOpacity 
                     style={styles.actionButton}
-                    onPress={() => {/* Handle chat */}}
+                    onPress={() => router.push({ pathname: '/auth/chat/[id]', params: { id: contact.id } })}
                   >
                     <MessageCircle color={theme.colors.primary} size={20} />
                   </TouchableOpacity>
@@ -187,7 +245,7 @@ export default function ContactsScreen() {
                     <Video color={theme.colors.primary} size={20} />
                   </TouchableOpacity>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
 
@@ -256,6 +314,88 @@ export default function ContactsScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Device Contacts Modal */}
+        <Modal
+          visible={showDeviceContactsModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowDeviceContactsModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Contacts</Text>
+                <TouchableOpacity onPress={() => setShowDeviceContactsModal(false)} style={styles.modalClose}>
+                  <X size={24} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ maxHeight: 350 }}>
+                {deviceContacts.map((c) => (
+                  <TouchableOpacity
+                    key={c.id}
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}
+                    onPress={() => toggleDeviceContact(c.id)}
+                  >
+                    <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: theme.colors.primary, marginRight: 12, backgroundColor: selectedDeviceContacts.includes(c.id) ? theme.colors.primary : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
+                      {selectedDeviceContacts.includes(c.id) && <Text style={{ color: '#fff', fontWeight: 'bold' }}>✓</Text>}
+                    </View>
+                    <Image source={c.imageAvailable && c.image ? { uri: c.image.uri } : require('../../assets/images/icon.png')} style={{ width: 36, height: 36, borderRadius: 18, marginRight: 12 }} />
+                    <View>
+                      <Text style={{ color: theme.colors.text, fontSize: 16 }}>{c.name}</Text>
+                      <Text style={{ color: theme.colors.textSecondary, fontSize: 13 }}>{c.emails?.[0]?.email || ''}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setShowDeviceContactsModal(false)}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.inviteButton} onPress={handleAddSelectedDeviceContacts}>
+                  <Text style={styles.inviteButtonText}>Add Selected</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Contact Details Modal */}
+        <Modal
+          visible={showContactDetails}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowContactDetails(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Contact Details</Text>
+                <TouchableOpacity onPress={() => setShowContactDetails(false)} style={styles.modalClose}>
+                  <X size={24} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              {selectedContact && (
+                <View style={{ alignItems: 'center', marginTop: 16 }}>
+                  <Image source={selectedContact.avatar ? { uri: selectedContact.avatar } : require('../../assets/images/icon.png')} style={{ width: 72, height: 72, borderRadius: 36, marginBottom: 12 }} />
+                  <Text style={{ fontSize: 20, color: theme.colors.text, fontWeight: 'bold', marginBottom: 4 }}>{selectedContact.name}</Text>
+                  <Text style={{ color: theme.colors.textSecondary, marginBottom: 8 }}>{selectedContact.email}</Text>
+                  {selectedContact.phone && <Text style={{ color: theme.colors.textSecondary, marginBottom: 8 }}>{selectedContact.phone}</Text>}
+                  <Text style={{ color: theme.colors.primary, marginBottom: 8 }}>{selectedContact.department}</Text>
+                  <Text style={{ color: theme.colors.textTertiary, marginBottom: 8 }}>{getStatusText(selectedContact.status)} • {selectedContact.lastSeen}</Text>
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+                    <TouchableOpacity style={styles.actionButton} onPress={() => handleStartCall(selectedContact.id, false)}>
+                      <Phone color={theme.colors.primary} size={22} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionButton} onPress={() => handleStartCall(selectedContact.id, true)}>
+                      <Video color={theme.colors.primary} size={22} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
             </View>
           </View>
         </Modal>

@@ -12,6 +12,7 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { View } from 'react-native';
+import { UserProvider } from '@/contexts/UserContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,36 +37,38 @@ function RootLayoutContent() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.gradientStart }}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="auth" />
-        <Stack.Screen 
-          name="(tabs)" 
-          options={{ 
-            headerShown: false,
-            gestureEnabled: false 
-          }} 
-        />
-        <Stack.Screen 
-          name="call/[id]" 
-          options={{ 
-            presentation: 'fullScreenModal',
-            headerShown: false,
-            gestureEnabled: false
-          }} 
-        />
-        <Stack.Screen 
-          name="join/[id]" 
-          options={{ 
-            presentation: 'modal',
-            headerShown: false
-          }} 
-        />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style={theme.isDark ? "light" : "dark"} />
-    </View>
+    <UserProvider>
+      <View style={{ flex: 1, backgroundColor: theme.colors.gradientStart }}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="auth" />
+          <Stack.Screen 
+            name="(tabs)" 
+            options={{ 
+              headerShown: false,
+              gestureEnabled: false 
+            }} 
+          />
+          <Stack.Screen 
+            name="call/[id]" 
+            options={{ 
+              presentation: 'fullScreenModal',
+              headerShown: false,
+              gestureEnabled: false
+            }} 
+          />
+          <Stack.Screen 
+            name="join/[id]" 
+            options={{ 
+              presentation: 'modal',
+              headerShown: false
+            }} 
+          />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar style={theme.isDark ? "light" : "dark"} />
+      </View>
+    </UserProvider>
   );
 }
 

@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Animated, Easing, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Video, Calendar, Clock, Users, CreditCard as Edit3, FileText, GraduationCap, Briefcase, User, Star, ChevronRight } from 'lucide-react-native';
+import { Video, Calendar, Clock, Users, CreditCard as Edit3, FileText, GraduationCap, Briefcase, User, Star, ChevronRight, Grid } from 'lucide-react-native';
 import { useState, useEffect, useRef } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -9,6 +9,7 @@ import { WhiteboardComponent } from '@/components/WhiteboardComponent';
 import { SharedNotesComponent } from '@/components/SharedNotesComponent';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { AnimatedBackgroundCircle } from '@/components/AnimatedBackgroundCircle';
+import { useUser } from '@/contexts/UserContext';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -20,6 +21,7 @@ export default function HomeScreen() {
   const usableHeight = deviceHeight - insets.top - insets.bottom;
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [showSharedNotes, setShowSharedNotes] = useState(false);
+  const { user } = useUser();
 
   // Mock user and stats
   const userName = 'Alex';
@@ -130,12 +132,13 @@ export default function HomeScreen() {
   const handleNavigateToTab = (tabName: string) => {
     // Map tab names to valid route strings
     const tabRoutes: Record<string, string> = {
-      classroom: '/(tabs)/classroom',
-      business: '/(tabs)/business',
+      classroom: '/screens/classroom',
+      business: '/screens/business',
       contacts: '/(tabs)/contacts',
       meetings: '/(tabs)/meetings',
       settings: '/(tabs)/settings',
       index: '/(tabs)',
+      tools: '/(tabs)/tools',
     };
     if (tabRoutes[tabName]) {
       router.push(tabRoutes[tabName] as any);
@@ -183,7 +186,11 @@ export default function HomeScreen() {
               accessibilityLabel="Profile avatar"
               onPress={() => router.push('/auth/profile')}
             >
-              <User color={theme.colors.primary} size={32} />
+              {user.avatar ? (
+                <Image source={{ uri: user.avatar }} style={styles.avatarContainer} />
+              ) : (
+                <User color={theme.colors.primary} size={32} />
+              )}
             </TouchableOpacity>
           </View>
 

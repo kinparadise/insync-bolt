@@ -7,6 +7,7 @@ export default function AuthLayout() {
       <Stack.Screen name="signup" />
       <Stack.Screen name="login" />
       <Stack.Screen name="profile" />
+      <Stack.Screen name="chat/[id]" />
     </Stack>
   );
 }
