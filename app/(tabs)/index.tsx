@@ -178,7 +178,11 @@ export default function HomeScreen() {
             <View>
               <Text style={styles.greeting}>Good morning, {userName} <Text style={{ fontSize: 22 }}>👋</Text></Text>
             </View>
-            <TouchableOpacity style={styles.avatarContainer} accessibilityLabel="Profile avatar">
+            <TouchableOpacity 
+              style={styles.avatarContainer} 
+              accessibilityLabel="Profile avatar"
+              onPress={() => router.push('/auth/profile')}
+            >
               <User color={theme.colors.primary} size={32} />
             </TouchableOpacity>
           </View>
