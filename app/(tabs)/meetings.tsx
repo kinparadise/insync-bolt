@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Calendar, Clock, Plus, Video, Users, Copy, Settings, X, Phone, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Calendar, Clock, Plus, Video, Users, Copy, Settings, X, Phone, ChevronLeft, ChevronRight, FileText } from 'lucide-react-native';
 import { useState } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -14,6 +14,7 @@ export default function MeetingsScreen() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showRecurringModal, setShowRecurringModal] = useState(false);
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [meetingTitle, setMeetingTitle] = useState('');
   const [meetingDate, setMeetingDate] = useState('');
   const [meetingTime, setMeetingTime] = useState('');
@@ -145,6 +146,7 @@ export default function MeetingsScreen() {
       type: 'recurring',
       status: 'upcoming',
       meetingId: 'abc-defg-hij',
+      agenda: 'Yesterday\'s work, Today\'s plan, Blockers',
     },
     {
       id: '2',
@@ -155,6 +157,7 @@ export default function MeetingsScreen() {
       type: 'scheduled',
       status: 'upcoming',
       meetingId: 'klm-nopq-rst',
+      agenda: 'Introduction, Proposal overview, Q&A',
     },
     {
       id: '3',
@@ -165,6 +168,7 @@ export default function MeetingsScreen() {
       type: 'scheduled',
       status: 'scheduled',
       meetingId: 'uvw-xyza-bcd',
+      agenda: 'Progress update, Feedback, Next steps',
     },
     {
       id: '4',
@@ -175,6 +179,7 @@ export default function MeetingsScreen() {
       type: 'recurring',
       status: 'scheduled',
       meetingId: 'efg-hijk-lmn',
+      agenda: 'Company updates, Team highlights, Q&A',
     },
   ];
 
@@ -474,6 +479,104 @@ export default function MeetingsScreen() {
     setRecurringParticipants(recurringParticipants.filter((_, i) => i !== idx));
   };
 
+  // Meeting templates data
+  const meetingTemplates = [
+    {
+      id: '1',
+      name: '1:1 Check-in',
+      icon: '👥',
+      color: '#4F46E5',
+      duration: 30,
+      description: 'Personal catch-up and goal alignment',
+      agenda: ['Personal updates', 'Goal progress', 'Blockers', 'Next steps'],
+      participants: 2,
+      category: 'personal'
+    },
+    {
+      id: '2',
+      name: 'Team Standup',
+      icon: '🚀',
+      color: '#10B981',
+      duration: 15,
+      description: 'Daily team synchronization',
+      agenda: ['Yesterday\'s work', 'Today\'s plan', 'Blockers', 'Announcements'],
+      participants: 8,
+      category: 'team'
+    },
+    {
+      id: '3',
+      name: 'Client Presentation',
+      icon: '📊',
+      color: '#F59E0B',
+      duration: 60,
+      description: 'Professional client meetings',
+      agenda: ['Introduction', 'Proposal overview', 'Q&A', 'Next steps'],
+      participants: 5,
+      category: 'client'
+    },
+    {
+      id: '4',
+      name: 'Brainstorm Session',
+      icon: '💡',
+      color: '#8B5CF6',
+      duration: 45,
+      description: 'Creative problem solving',
+      agenda: ['Problem definition', 'Idea generation', 'Evaluation', 'Action planning'],
+      participants: 6,
+      category: 'creative'
+    },
+    {
+      id: '5',
+      name: 'Project Review',
+      icon: '📋',
+      color: '#EF4444',
+      duration: 60,
+      description: 'Project status and planning',
+      agenda: ['Progress update', 'Challenges', 'Solutions', 'Timeline adjustment'],
+      participants: 4,
+      category: 'project'
+    },
+    {
+      id: '6',
+      name: 'All Hands Meeting',
+      icon: '🎯',
+      color: '#06B6D4',
+      duration: 90,
+      description: 'Company-wide updates',
+      agenda: ['Company updates', 'Team highlights', 'Q&A', 'Announcements'],
+      participants: 25,
+      category: 'company'
+    }
+  ];
+
+  const handleUseTemplate = (template: any) => {
+    // Pre-fill the schedule meeting form with template data
+    setMeetingTitle(template.name);
+    setDuration(template.duration);
+    setAgenda(template.agenda.join('\n• '));
+    setShowTemplatesModal(false);
+    setShowScheduleModal(true);
+  };
+
+  const handleQuickSchedule = (template: any) => {
+    // Quick schedule with default settings (next available time)
+    const nextHour = new Date();
+    nextHour.setHours(nextHour.getHours() + 1);
+    nextHour.setMinutes(0);
+    nextHour.setSeconds(0);
+    
+    setMeetingTitle(template.name);
+    setSelectedDate(nextHour);
+    setDuration(template.duration);
+    setAgenda(template.agenda.join('\n• '));
+    setShowTemplatesModal(false);
+    
+    // Automatically open schedule modal
+    setTimeout(() => {
+      setShowScheduleModal(true);
+    }, 300);
+  };
+
   const copyMeetingId = (meetingId: string) => {
     // In a real app, you would copy to clipboard
     Alert.alert('Copied', `Meeting ID "${meetingId}" copied to clipboard`);
@@ -508,6 +611,40 @@ export default function MeetingsScreen() {
 
 
   const styles = createStyles(theme);
+
+  // Add recentMeetings array with enhanced data
+  const recentMeetings = [
+    {
+      id: '1',
+      title: 'Product Review',
+      time: 'Yesterday, 2:00 PM',
+      duration: 45,
+      type: 'scheduled',
+      status: 'completed',
+      agenda: 'Discussed Q4 features, Feedback, Next steps',
+      participants: 4,
+    },
+    {
+      id: '2',
+      title: 'Client Sync',
+      time: 'Yesterday, 11:00 AM',
+      duration: 30,
+      type: 'webinar',
+      status: 'recorded',
+      agenda: 'Demo, Q&A, Action items',
+      participants: 6,
+    },
+    {
+      id: '3',
+      title: 'Design Sprint',
+      time: '2 days ago, 3:00 PM',
+      duration: 60,
+      type: 'recurring',
+      status: 'completed',
+      agenda: 'Ideation, Prototyping, Review',
+      participants: 5,
+    },
+  ];
 
   return (
     <ThemedLinearGradient style={styles.container}>
@@ -545,18 +682,18 @@ export default function MeetingsScreen() {
               
               <TouchableOpacity 
                 style={styles.quickActionButton}
-                onPress={() => setShowScheduleModal(true)}
-              >
-                <Calendar color={theme.colors.primary} size={24} />
-                <Text style={styles.quickActionText}>Schedule Meeting</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.quickActionButton}
                 onPress={() => setShowJoinModal(true)}
               >
                 <Users color={theme.colors.primary} size={24} />
                 <Text style={styles.quickActionText}>Join by ID</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => setShowScheduleModal(true)}
+              >
+                <Calendar color={theme.colors.primary} size={24} />
+                <Text style={styles.quickActionText}>Schedule Meeting</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -566,6 +703,14 @@ export default function MeetingsScreen() {
                 <Clock color={theme.colors.primary} size={24} />
                 <Text style={styles.quickActionText}>Recurring</Text>
               </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => setShowTemplatesModal(true)}
+              >
+                <FileText color={theme.colors.primary} size={24} />
+                <Text style={styles.quickActionText}>Templates</Text>
+              </TouchableOpacity>
             </ScrollView>
           </View>
 
@@ -574,18 +719,44 @@ export default function MeetingsScreen() {
             <Text style={styles.sectionTitle}>Upcoming Meetings</Text>
             {meetings.map((meeting) => (
               <View key={meeting.id} style={styles.meetingCard}>
+                {/* Edit/Delete Actions - absolutely positioned */}
+                <View style={styles.meetingActionsColumn}>
+                  <TouchableOpacity style={styles.iconButton}>
+                    <Settings size={16} color={theme.colors.textSecondary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.iconButton}>
+                    <X size={16} color={theme.colors.error} />
+                  </TouchableOpacity>
+                </View>
                 <View style={styles.meetingHeader}>
+                  {/* Meeting Type Icon */}
                   <View style={styles.meetingIcon}>
-                    <Video color={theme.colors.primary} size={20} />
+                    {meeting.type === 'recurring' ? (
+                      <Clock color={theme.colors.primary} size={20} />
+                    ) : meeting.type === 'webinar' ? (
+                      <Video color={theme.colors.primary} size={20} />
+                    ) : (
+                      <Calendar color={theme.colors.primary} size={20} />
+                    )}
                   </View>
                   <View style={styles.meetingInfo}>
-                    <Text style={styles.meetingTitle}>{meeting.title}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                      <Text style={styles.meetingTitle}>{meeting.title}</Text>
+                      {/* Status Tag */}
+                      <View style={[styles.statusTag, meeting.status === 'upcoming' ? styles.statusTagUpcoming : styles.statusTagScheduled]}>
+                        <Text style={styles.statusTagText}>{meeting.status.charAt(0).toUpperCase() + meeting.status.slice(1)}</Text>
+                      </View>
+                    </View>
                     <View style={styles.meetingMeta}>
                       <Clock color={theme.colors.textSecondary} size={14} />
                       <Text style={styles.meetingTime}>
                         {meeting.date} at {meeting.time}
                       </Text>
                     </View>
+                    {/* Agenda Preview */}
+                    <Text style={styles.meetingAgendaPreview} numberOfLines={1}>
+                      {meeting.agenda ? meeting.agenda.split('\n')[0] : 'No agenda'}
+                    </Text>
                     <View style={styles.meetingDetails}>
                       <View style={styles.meetingIdContainer}>
                         <Text style={styles.meetingId}>ID: {meeting.meetingId}</Text>
@@ -596,26 +767,28 @@ export default function MeetingsScreen() {
                           <Copy size={14} color={theme.colors.textSecondary} />
                         </TouchableOpacity>
                       </View>
-                      <View style={styles.participantsBadge}>
-                        <Users size={12} color={theme.colors.primary} />
-                        <Text style={styles.participantsText}>{meeting.participants}</Text>
+                      {/* Participant Avatars */}
+                      <View style={styles.participantsAvatars}>
+                        {[...Array(Math.min(2, meeting.participants))].map((_, idx) => (
+                          <View key={idx} style={[styles.avatarCircle, { backgroundColor: theme.colors.primary + '33', marginLeft: idx === 0 ? 0 : -8 }]}> 
+                            <Text style={styles.avatarInitials}>{'P' + (idx + 1)}</Text>
+                          </View>
+                        ))}
+                        {meeting.participants > 2 && (
+                          <View style={[styles.avatarCircle, styles.avatarMore, { marginLeft: -8 }]}> 
+                            <Text style={styles.avatarInitials}>+{meeting.participants - 2}</Text>
+                          </View>
+                        )}
                       </View>
                     </View>
                   </View>
                 </View>
-                
                 <View style={styles.meetingActions}>
                   <TouchableOpacity 
                     style={styles.joinButton}
                     onPress={() => handleJoinMeeting(meeting.id)}
                   >
                     <Text style={styles.joinButtonText}>Join</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.detailsButton}
-                    onPress={() => handleMeetingSettings(meeting.id)}
-                  >
-                    <Settings size={16} color={theme.colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -625,19 +798,72 @@ export default function MeetingsScreen() {
           {/* Recent Meetings */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Recent Meetings</Text>
-            <View style={styles.recentMeeting}>
-              <View style={styles.recentMeetingInfo}>
-                <Text style={styles.recentMeetingTitle}>Product Review</Text>
-                <Text style={styles.recentMeetingTime}>Yesterday, 2:00 PM</Text>
-                <Text style={styles.recentMeetingDuration}>Duration: 45 minutes</Text>
+            {recentMeetings.map((meeting) => (
+              <View key={meeting.id} style={styles.meetingCard}>
+                {/* Edit/Delete Actions - absolutely positioned */}
+                <View style={styles.meetingActionsColumn}>
+                  <TouchableOpacity style={styles.iconButton}>
+                    <Settings size={16} color={theme.colors.textSecondary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.iconButton}>
+                    <X size={16} color={theme.colors.error} />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.meetingHeader}>
+                  {/* Meeting Type Icon */}
+                  <View style={styles.meetingIcon}>
+                    {meeting.type === 'recurring' ? (
+                      <Clock color={theme.colors.primary} size={20} />
+                    ) : meeting.type === 'webinar' ? (
+                      <Video color={theme.colors.primary} size={20} />
+                    ) : (
+                      <Calendar color={theme.colors.primary} size={20} />
+                    )}
+                  </View>
+                  <View style={styles.meetingInfo}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                      <Text style={styles.meetingTitle}>{meeting.title}</Text>
+                      {/* Status Tag */}
+                      <View style={[styles.statusTag, meeting.status === 'completed' ? styles.statusTagUpcoming : styles.statusTagScheduled]}>
+                        <Text style={styles.statusTagText}>{meeting.status.charAt(0).toUpperCase() + meeting.status.slice(1)}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.meetingMeta}>
+                      <Clock color={theme.colors.textSecondary} size={14} />
+                      <Text style={styles.meetingTime}>{meeting.time}</Text>
+                      <Text style={styles.meetingTime}>, Duration: {meeting.duration} min</Text>
+                    </View>
+                    {/* Agenda Preview */}
+                    <Text style={styles.meetingAgendaPreview} numberOfLines={1}>
+                      {meeting.agenda ? meeting.agenda.split('\n')[0] : 'No agenda'}
+                    </Text>
+                    <View style={styles.meetingDetails}>
+                      {/* Participant Avatars */}
+                      <View style={styles.participantsAvatars}>
+                        {[...Array(Math.min(2, meeting.participants))].map((_, idx) => (
+                          <View key={idx} style={[styles.avatarCircle, { backgroundColor: theme.colors.primary + '33', marginLeft: idx === 0 ? 0 : -8 }]}> 
+                            <Text style={styles.avatarInitials}>{'P' + (idx + 1)}</Text>
+                          </View>
+                        ))}
+                        {meeting.participants > 2 && (
+                          <View style={[styles.avatarCircle, styles.avatarMore, { marginLeft: -8 }]}> 
+                            <Text style={styles.avatarInitials}>+{meeting.participants - 2}</Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.meetingActions}>
+                  <TouchableOpacity 
+                    style={styles.joinButton}
+                    onPress={() => handleViewRecording()}
+                  >
+                    <Text style={styles.joinButtonText}>View Recording</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-              <TouchableOpacity 
-                style={styles.recentMeetingAction}
-                onPress={handleViewRecording}
-              >
-                <Text style={styles.recentMeetingActionText}>View Recording</Text>
-              </TouchableOpacity>
-            </View>
+            ))}
           </View>
         </ScrollView>
 
@@ -1481,6 +1707,76 @@ export default function MeetingsScreen() {
             </View>
           </View>
         </Modal>
+
+        {/* Meeting Templates Modal */}
+        <Modal
+          visible={showTemplatesModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowTemplatesModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { paddingBottom: 0 }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Meeting Templates</Text>
+                <TouchableOpacity 
+                  onPress={() => setShowTemplatesModal(false)}
+                  style={styles.modalClose}
+                >
+                  <X size={24} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ maxHeight: 600 }} showsVerticalScrollIndicator={false}>
+                <View style={styles.modalBody}>
+                  <Text style={styles.templatesDescription}>
+                    Choose a template to quickly schedule meetings with pre-filled settings
+                  </Text>
+                  
+                  <View style={styles.templatesGrid}>
+                    {meetingTemplates.map((template) => (
+                      <View key={template.id} style={styles.templateCard}>
+                        <View style={styles.templateHeader}>
+                          <View style={[styles.templateIconContainer, { backgroundColor: template.color + '20' }]}>
+                            <Text style={styles.templateEmoji}>{template.icon}</Text>
+                          </View>
+                          <View style={styles.templateInfo}>
+                            <Text style={styles.templateName}>{template.name}</Text>
+                            <Text style={styles.templateDuration}>{template.duration} min</Text>
+                          </View>
+                        </View>
+                        
+                        <Text style={styles.templateDescription}>{template.description}</Text>
+                        
+                        <View style={styles.templateAgenda}>
+                          <Text style={styles.agendaTitle}>Agenda:</Text>
+                          {template.agenda.map((item, index) => (
+                            <Text key={index} style={styles.agendaItem}>• {item}</Text>
+                          ))}
+                        </View>
+                        
+                        <View style={styles.templateActions}>
+                          <TouchableOpacity 
+                            style={[styles.templateButton, styles.useTemplateButton]}
+                            onPress={() => handleUseTemplate(template)}
+                          >
+                            <Text style={styles.useTemplateText}>Use Template</Text>
+                          </TouchableOpacity>
+                          
+                          <TouchableOpacity 
+                            style={[styles.templateButton, styles.quickScheduleButton]}
+                            onPress={() => handleQuickSchedule(template)}
+                          >
+                            <Text style={styles.quickScheduleText}>Quick Schedule</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </ThemedLinearGradient>
   );
@@ -1546,6 +1842,10 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.text,
     textAlign: 'center',
   },
+  templateIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
   section: {
     paddingHorizontal: 24,
     marginBottom: 32,
@@ -1563,6 +1863,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    position: 'relative',
   },
   meetingHeader: {
     flexDirection: 'row',
@@ -1580,6 +1881,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   meetingInfo: {
     flex: 1,
+    paddingRight: 80,
   },
   meetingTitle: {
     fontSize: 16,
@@ -1981,5 +2283,166 @@ const createStyles = (theme: any) => StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-around',
+  },
+  templatesDescription: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: theme.colors.textSecondary,
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  templatesGrid: {
+    gap: 16,
+  },
+  templateCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  templateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  templateIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  templateEmoji: {
+    fontSize: 24,
+  },
+  templateInfo: {
+    flex: 1,
+  },
+  templateName: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  templateDuration: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: theme.colors.primary,
+  },
+  templateDescription: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: theme.colors.textSecondary,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  templateAgenda: {
+    marginBottom: 16,
+  },
+  agendaTitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: theme.colors.text,
+    marginBottom: 8,
+  },
+  agendaItem: {
+    fontSize: 13,
+    fontFamily: 'Inter-Regular',
+    color: theme.colors.textSecondary,
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+  templateActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  templateButton: {
+    flex: 1,
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  useTemplateButton: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  quickScheduleButton: {
+    backgroundColor: theme.colors.primary,
+  },
+  useTemplateText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: theme.colors.text,
+  },
+  quickScheduleText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#ffffff',
+  },
+  statusTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  statusTagUpcoming: {
+    backgroundColor: '#4CAF50',
+  },
+  statusTagScheduled: {
+    backgroundColor: '#2196F3',
+  },
+  statusTagText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#ffffff',
+  },
+  meetingAgendaPreview: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: theme.colors.textSecondary,
+    marginBottom: 8,
+  },
+  participantsAvatars: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitials: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#ffffff',
+  },
+  avatarMore: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  meetingActionsColumn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    gap: 8,
+    zIndex: 2,
+  },
+  iconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 0,
+    marginBottom: 0,
   },
 });
