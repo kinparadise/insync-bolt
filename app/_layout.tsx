@@ -10,12 +10,13 @@ import {
   Inter_700Bold
 } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
-import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { View } from 'react-native';
 
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
-  const { theme } = useTheme();
+  const { theme } = require('@/contexts/ThemeContext').useTheme();
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -35,7 +36,7 @@ function RootLayoutContent() {
   }
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: theme.colors.gradientStart }}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="auth" />
@@ -64,7 +65,7 @@ function RootLayoutContent() {
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style={theme.isDark ? "light" : "dark"} />
-    </>
+    </View>
   );
 }
 

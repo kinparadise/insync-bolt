@@ -5,6 +5,7 @@ import { ArrowLeft, Mic, Speaker, Camera, ChevronRight, Bell, Shield, CircleHelp
 import { useState } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme, ThemeMode } from '@/contexts/ThemeContext';
+import { AnimatedBackgroundCircle } from '@/components/AnimatedBackgroundCircle';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -121,6 +122,7 @@ export default function SettingsScreen() {
 
   return (
     <ThemedLinearGradient style={styles.container}>
+      <AnimatedBackgroundCircle />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <Text style={styles.title}>Settings</Text>

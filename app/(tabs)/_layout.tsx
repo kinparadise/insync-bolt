@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, Calendar, Settings, Users, GraduationCap, Briefcase } from 'lucide-react-native';
+import { Home, Calendar, Settings, Users, GraduationCap, Briefcase } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export default function TabLayout() {
@@ -14,11 +14,11 @@ export default function TabLayout() {
           borderTopColor: theme.colors.border,
           borderTopWidth: 1,
           height: 80,
-          paddingBottom: 20,
-          paddingTop: 8,
+          paddingBottom: 0,
+          paddingTop: 0,
         },
         tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textTertiary,
+        tabBarInactiveTintColor: theme.colors.textSecondary,
         tabBarLabelStyle: {
           fontFamily: 'Inter-Medium',
           fontSize: 12,

@@ -5,10 +5,16 @@ import { useState } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
+import { AnimatedBackgroundCircle } from '@/components/AnimatedBackgroundCircle';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Dimensions } from 'react-native';
 
 export default function ClassroomScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { height: deviceHeight } = Dimensions.get('window');
+  const usableHeight = deviceHeight - insets.top - insets.bottom;
   
   // Classroom states
   const [isClassroomMode, setIsClassroomMode] = useState(false);
@@ -105,7 +111,8 @@ export default function ClassroomScreen() {
   const styles = createStyles(theme);
 
   return (
-    <ThemedLinearGradient style={styles.container}>
+    <ThemedLinearGradient style={{ ...styles.container, height: usableHeight }}>
+      <AnimatedBackgroundCircle height={usableHeight} />
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <Text style={styles.title}>Classroom</Text>

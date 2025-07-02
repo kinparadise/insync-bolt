@@ -7,6 +7,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as CalendarAPI from 'expo-calendar';
+import { AnimatedBackgroundCircle } from '@/components/AnimatedBackgroundCircle';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Dimensions } from 'react-native';
 
 export default function MeetingsScreen() {
   const { theme } = useTheme();
@@ -51,6 +54,10 @@ export default function MeetingsScreen() {
   const [showRecurringTimePicker, setShowRecurringTimePicker] = useState(false);
   const [recurringCurrentMonth, setRecurringCurrentMonth] = useState(new Date());
   const [recurringEndCurrentMonth, setRecurringEndCurrentMonth] = useState(new Date());
+
+  const insets = useSafeAreaInsets();
+  const { height: deviceHeight } = Dimensions.get('window');
+  const usableHeight = deviceHeight - insets.top - insets.bottom;
 
   // Helper to format date and time
   const formatDate = (date: Date | null) => date ? date.toLocaleDateString() : '';
@@ -208,26 +215,30 @@ export default function MeetingsScreen() {
     try {
       // Request calendar permissions
       console.log('Requesting calendar permissions...');
-      const { status } = await CalendarAPI.requestCalendarPermissionsAsync();
-      console.log('Calendar permission status:', status);
-      
+      const { status, granted, canAskAgain } = await CalendarAPI.requestCalendarPermissionsAsync();
+      console.log('Calendar permission status:', status, 'granted:', granted, 'canAskAgain:', canAskAgain);
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Calendar permission is required to schedule meetings.');
+        Alert.alert('Permission Required', 'Calendar permission is required to schedule meetings. Status: ' + status);
         return;
       }
 
       // Get default calendar
       console.log('Getting calendars...');
       const calendars = await CalendarAPI.getCalendarsAsync(CalendarAPI.EntityTypes.EVENT);
-      console.log('Available calendars:', calendars.length);
-      
-      const defaultCalendar = calendars.find(cal => cal.isPrimary) || calendars[0];
-      console.log('Selected calendar:', defaultCalendar?.title || 'None');
-
-      if (!defaultCalendar) {
+      console.log('Available calendars:', calendars.length, calendars.map(c => ({ id: c.id, title: c.title, isPrimary: c.isPrimary, source: c.source })));
+      if (!calendars || calendars.length === 0) {
         Alert.alert('No Calendar Found', 'No calendar found on your device.');
         return;
       }
+      const defaultCalendar = calendars.find(cal => cal.isPrimary) || calendars[0];
+      console.log('Selected calendar:', defaultCalendar?.title || 'None', defaultCalendar);
+      // Show an alert with calendar info for debugging
+      Alert.alert(
+        'Calendars Found',
+        calendars.map(c => `${c.title} (id: ${c.id})${c.isPrimary ? ' [Primary]' : ''}`).join('\n') +
+          `\n\nSelected: ${defaultCalendar.title} (id: ${defaultCalendar.id})`,
+        [{ text: 'OK' }]
+      );
 
       // Create calendar event
       const eventDetails = {
@@ -243,7 +254,7 @@ export default function MeetingsScreen() {
       console.log('Creating calendar event with details:', eventDetails);
       const eventId = await CalendarAPI.createEventAsync(defaultCalendar.id, eventDetails);
       console.log('Event created with ID:', eventId);
-      
+
       Alert.alert(
         'Success!', 
         `Meeting "${meetingTitle}" has been scheduled and added to your calendar.\n\nEvent ID: ${eventId}`,
@@ -265,7 +276,7 @@ export default function MeetingsScreen() {
 
     } catch (error) {
       console.error('Schedule meeting error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
       Alert.alert('Error', `Failed to schedule meeting: ${errorMessage}`);
     }
   };
@@ -647,7 +658,8 @@ export default function MeetingsScreen() {
   ];
 
   return (
-    <ThemedLinearGradient style={styles.container}>
+    <ThemedLinearGradient style={{ ...styles.container, height: usableHeight }}>
+      <AnimatedBackgroundCircle height={usableHeight} />
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <Text style={styles.title}>Meetings</Text>

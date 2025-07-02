@@ -1,18 +1,85 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Animated, Easing, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Video, Calendar, Clock, Users, CreditCard as Edit3, FileText, GraduationCap, Briefcase } from 'lucide-react-native';
-import { useState } from 'react';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Video, Calendar, Clock, Users, CreditCard as Edit3, FileText, GraduationCap, Briefcase, User, Star, ChevronRight } from 'lucide-react-native';
+import { useState, useEffect, useRef } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import { WhiteboardComponent } from '@/components/WhiteboardComponent';
 import { SharedNotesComponent } from '@/components/SharedNotesComponent';
+import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import { AnimatedBackgroundCircle } from '@/components/AnimatedBackgroundCircle';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export default function HomeScreen() {
   const router = useRouter();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { height: deviceHeight } = Dimensions.get('window');
+  const usableHeight = deviceHeight - insets.top - insets.bottom;
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [showSharedNotes, setShowSharedNotes] = useState(false);
+
+  // Mock user and stats
+  const userName = 'Alex';
+  const stats = [
+    {
+      label: 'Meetings this week',
+      value: 5,
+      icon: <Calendar color={theme.colors.primary} size={24} />, 
+      color: theme.colors.primary,
+    },
+    {
+      label: 'Calls this week',
+      value: 8,
+      icon: <Video color={theme.colors.success} size={24} />, 
+      color: theme.colors.success,
+    },
+    {
+      label: 'Upcoming today',
+      value: 2,
+      icon: <Clock color={theme.colors.warning} size={24} />, 
+      color: theme.colors.warning,
+    },
+  ];
+
+  // Rotating banner messages
+  const bannerMessages = [
+    "🎉 You've attended 5 meetings this week! Keep it up!",
+    "✨ Try our new Meeting Templates feature for faster scheduling!",
+    "💡 Tip: Use Shared Notes to collaborate in real time.",
+    "🔔 Don't miss your next call—enable notifications in Settings!",
+    "🚀 Invite your team to InSync for seamless collaboration!",
+  ];
+  const [bannerIndex, setBannerIndex] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  // Auto-rotate banner every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      handleNextBanner();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [bannerIndex]);
+
+  const handleNextBanner = () => {
+    // Fade out, change message, then fade in
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+      easing: Easing.out(Easing.ease),
+    }).start(() => {
+      setBannerIndex((prev) => (prev + 1) % bannerMessages.length);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+        easing: Easing.in(Easing.ease),
+      }).start();
+    });
+  };
 
   const upcomingMeetings = [
     {
@@ -61,59 +128,152 @@ export default function HomeScreen() {
   };
 
   const handleNavigateToTab = (tabName: string) => {
-    router.push(`/(tabs)/${tabName}`);
+    // Map tab names to valid route strings
+    const tabRoutes: Record<string, string> = {
+      classroom: '/(tabs)/classroom',
+      business: '/(tabs)/business',
+      contacts: '/(tabs)/contacts',
+      meetings: '/(tabs)/meetings',
+      settings: '/(tabs)/settings',
+      index: '/(tabs)',
+    };
+    if (tabRoutes[tabName]) {
+      router.push(tabRoutes[tabName] as any);
+    }
   };
+
+  // Animation refs
+  const statsAnim = useRef(new Animated.Value(0)).current;
+  const newCallAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.stagger(200, [
+      Animated.timing(statsAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.exp),
+      }),
+      Animated.timing(newCallAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.exp),
+      }),
+    ]).start();
+  }, []);
+
+  // Tool card press effect
+  const [pressedTool, setPressedTool] = useState<string | null>(null);
 
   const styles = createStyles(theme);
 
   return (
-    <ThemedLinearGradient style={styles.container}>
+    <ThemedLinearGradient style={{ ...styles.container, height: usableHeight }}>
+      <AnimatedBackgroundCircle height={usableHeight} />
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <Text style={styles.greeting}>Welcome, Alex</Text>
-          </View>
-
-          <View style={styles.newCallSection}>
-            <TouchableOpacity style={styles.newCallButton} onPress={handleNewCall}>
-              <View style={styles.newCallIcon}>
-                <Video color="#ffffff" size={32} />
-              </View>
-              <Text style={styles.newCallText}>New Call</Text>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
+          {/* Greeting and Avatar */}
+          <View style={styles.greetingRow}>
+            <View>
+              <Text style={styles.greeting}>Good morning, {userName} <Text style={{ fontSize: 22 }}>👋</Text></Text>
+            </View>
+            <TouchableOpacity style={styles.avatarContainer} accessibilityLabel="Profile avatar">
+              <User color={theme.colors.primary} size={32} />
             </TouchableOpacity>
           </View>
+
+          {/* Quick Stats Row (Animated) */}
+          <Animated.View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            gap: 12,
+            paddingHorizontal: 24,
+            marginBottom: 24,
+            opacity: statsAnim,
+            transform: [{ translateY: statsAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }],
+          }}>
+            {stats.map((stat, idx) => (
+              <View key={stat.label} style={[styles.statCard, { backgroundColor: stat.color + '15' }]}> 
+                <View style={styles.statIcon}>{stat.icon}</View>
+                <Text style={styles.statValue}>{stat.value}</Text>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+              </View>
+            ))}
+          </Animated.View>
+
+          {/* Animated Motivational Banner */}
+          <Animated.View style={[styles.banner, { opacity: fadeAnim }]}> 
+            <Star color={theme.colors.primary} size={20} style={{ marginRight: 8 }} />
+            <Text style={styles.bannerText}>{bannerMessages[bannerIndex]}</Text>
+            <TouchableOpacity style={styles.bannerNext} onPress={handleNextBanner} accessibilityLabel="Next tip">
+              <ChevronRight color={theme.colors.primary} size={20} />
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* New Call Button (Animated) */}
+          <Animated.View style={{
+            opacity: newCallAnim,
+            transform: [{ translateY: newCallAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }],
+          }}>
+            <View style={styles.newCallSection}>
+              <TouchableOpacity 
+                style={styles.newCallButton} 
+                onPress={handleNewCall}
+                accessibilityLabel="Start a new call"
+              >
+                <View style={styles.newCallIcon}>
+                  <Video color="#ffffff" size={32} />
+                </View>
+                <Text style={styles.newCallText}>New Call</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
 
           {/* Quick Tools */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Quick Tools</Text>
             <View style={styles.toolsGrid}>
               <TouchableOpacity 
-                style={styles.toolCard}
+                style={[styles.toolCard, pressedTool === 'whiteboard' && styles.toolCardPressed]}
+                onPressIn={() => setPressedTool('whiteboard')}
+                onPressOut={() => setPressedTool(null)}
                 onPress={() => setShowWhiteboard(true)}
+                accessibilityLabel="Open Whiteboard"
+                activeOpacity={0.85}
               >
                 <Edit3 color={theme.colors.primary} size={24} />
                 <Text style={styles.toolText}>Whiteboard</Text>
               </TouchableOpacity>
-              
               <TouchableOpacity 
-                style={styles.toolCard}
+                style={[styles.toolCard, pressedTool === 'notes' && styles.toolCardPressed]}
+                onPressIn={() => setPressedTool('notes')}
+                onPressOut={() => setPressedTool(null)}
                 onPress={() => setShowSharedNotes(true)}
+                accessibilityLabel="Open Shared Notes"
+                activeOpacity={0.85}
               >
                 <FileText color={theme.colors.primary} size={24} />
                 <Text style={styles.toolText}>Shared Notes</Text>
               </TouchableOpacity>
-              
               <TouchableOpacity 
-                style={styles.toolCard}
+                style={[styles.toolCard, pressedTool === 'classroom' && styles.toolCardPressed]}
+                onPressIn={() => setPressedTool('classroom')}
+                onPressOut={() => setPressedTool(null)}
                 onPress={() => handleNavigateToTab('classroom')}
+                accessibilityLabel="Go to Classroom"
+                activeOpacity={0.85}
               >
                 <GraduationCap color={theme.colors.primary} size={24} />
                 <Text style={styles.toolText}>Classroom</Text>
               </TouchableOpacity>
-              
               <TouchableOpacity 
-                style={styles.toolCard}
+                style={[styles.toolCard, pressedTool === 'business' && styles.toolCardPressed]}
+                onPressIn={() => setPressedTool('business')}
+                onPressOut={() => setPressedTool(null)}
                 onPress={() => handleNavigateToTab('business')}
+                accessibilityLabel="Go to Business"
+                activeOpacity={0.85}
               >
                 <Briefcase color={theme.colors.primary} size={24} />
                 <Text style={styles.toolText}>Business</Text>
@@ -195,14 +355,78 @@ const createStyles = (theme: any) => StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  header: {
+  greetingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingTop: 32,
+    marginBottom: 24,
   },
   greeting: {
-    fontSize: 32,
+    fontSize: 28,
     fontFamily: 'Inter-Bold',
     color: theme.colors.text,
+  },
+  avatarContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 16,
+    paddingVertical: 20,
+    alignItems: 'center',
+    marginHorizontal: 2,
+    elevation: 2,
+  },
+  statIcon: {
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 22,
+    fontFamily: 'Inter-Bold',
+    color: theme.colors.primary,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 13,
+    fontFamily: 'Inter-Medium',
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary + '10',
+    borderRadius: 12,
+    marginHorizontal: 24,
+    padding: 16,
+    marginBottom: 32,
+  },
+  bannerText: {
+    fontSize: 15,
+    fontFamily: 'Inter-SemiBold',
+    color: theme.colors.primary,
+    flex: 1,
+  },
+  bannerNext: {
+    marginLeft: 8,
+    padding: 4,
+    borderRadius: 8,
   },
   newCallSection: {
     paddingHorizontal: 24,
@@ -341,5 +565,17 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   videoIndicator: {
     padding: 4,
+  },
+  accentBg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 180,
+    zIndex: 0,
+  },
+  toolCardPressed: {
+    transform: [{ scale: 0.96 }],
+    opacity: 0.85,
   },
 });

@@ -5,6 +5,9 @@ import { useState } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
+import { AnimatedBackgroundCircle } from '@/components/AnimatedBackgroundCircle';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Dimensions } from 'react-native';
 
 export default function ContactsScreen() {
   const { theme } = useTheme();
@@ -12,6 +15,9 @@ export default function ContactsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const insets = useSafeAreaInsets();
+  const { height: deviceHeight } = Dimensions.get('window');
+  const usableHeight = deviceHeight - insets.top - insets.bottom;
 
   const contacts = [
     {
@@ -110,7 +116,8 @@ export default function ContactsScreen() {
   const styles = createStyles(theme);
 
   return (
-    <ThemedLinearGradient style={styles.container}>
+    <ThemedLinearGradient style={{ ...styles.container, height: usableHeight }}>
+      <AnimatedBackgroundCircle height={usableHeight} />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <Text style={styles.title}>Contacts</Text>
