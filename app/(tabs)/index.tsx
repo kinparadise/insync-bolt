@@ -9,7 +9,7 @@ import { WhiteboardComponent } from '@/components/WhiteboardComponent';
 import { SharedNotesComponent } from '@/components/SharedNotesComponent';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { AnimatedBackgroundCircle } from '@/components/AnimatedBackgroundCircle';
-import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -21,10 +21,10 @@ export default function HomeScreen() {
   const usableHeight = deviceHeight - insets.top - insets.bottom;
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [showSharedNotes, setShowSharedNotes] = useState(false);
-  const { user } = useUser();
+  const { user } = useAuth();
 
   // Mock user and stats
-  const userName = 'Alex';
+  const userName = user?.name || 'User';
   const stats = [
     {
       label: 'Meetings this week',
@@ -186,7 +186,7 @@ export default function HomeScreen() {
               accessibilityLabel="Profile avatar"
               onPress={() => router.push('/auth/profile')}
             >
-              {user.avatar ? (
+              {user?.avatar ? (
                 <Image source={{ uri: user.avatar }} style={styles.avatarContainer} />
               ) : (
                 <User color={theme.colors.primary} size={32} />
