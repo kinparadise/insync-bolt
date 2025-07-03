@@ -1025,6 +1025,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     paddingTop: 20,
+    marginTop: 50,
   },
   callInfo: {
     alignItems: 'center',
