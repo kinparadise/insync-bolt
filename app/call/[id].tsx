@@ -1174,7 +1174,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 24,
+    gap: 20,
     marginBottom: 20,
   },
   controlButton: {
