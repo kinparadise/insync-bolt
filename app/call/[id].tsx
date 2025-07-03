@@ -1024,7 +1024,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    paddingTop: 50,
+    paddingTop: 40,
   },
   callInfo: {
     alignItems: 'center',
