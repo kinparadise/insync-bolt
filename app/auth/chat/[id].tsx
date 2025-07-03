@@ -126,7 +126,7 @@ export default function ChatScreen() {
     <ThemedLinearGradient style={styles.container}>
       {/* Chat Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/(tabs)/contacts')} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.push('/(tabs)/contacts' as any)} style={styles.backButton}>
           <ArrowLeft size={26} color={theme.colors.textSecondary} />
         </TouchableOpacity>
         <Image source={chatContact?.avatar ? { uri: chatContact.avatar } : require('../../../assets/images/icon.png')} style={styles.avatar} />

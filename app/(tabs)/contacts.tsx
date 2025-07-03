@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Modal, KeyboardAvoidingView, Platform, Pressable, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Phone, Video, MessageCircle, UserPlus, X, Mail, Send, Check, CheckCheck } from 'lucide-react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
@@ -11,6 +11,7 @@ import { Dimensions } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import dayjs from 'dayjs';
 import { startInAppCall } from '@/components/InAppCallManager';
+import { InAppCallScreen } from '@/components/InAppCallManager';
 
 export default function ContactsScreen() {
   const { theme } = useTheme();
@@ -28,6 +29,10 @@ export default function ContactsScreen() {
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [showCallOptions, setShowCallOptions] = useState(false);
   const [callTarget, setCallTarget] = useState<ContactType | null>(null);
+  const [showInAppCall, setShowInAppCall] = useState(false);
+  const [inAppCallContact, setInAppCallContact] = useState<ContactType | null>(null);
+  const [showSimpleVideoCall, setShowSimpleVideoCall] = useState(false);
+  const [videoCallContact, setVideoCallContact] = useState<ContactType | null>(null);
   const [contacts, setContacts] = useState<ContactType[]>([
     {
       id: '1',
@@ -126,7 +131,7 @@ export default function ContactsScreen() {
 
   const handleStartCall = (contactId: string, isVideo: boolean = false) => {
     const callId = `call-${contactId}-${Date.now()}`;
-    router.push(`/call/${callId}`);
+    router.push(`/call/${callId}` as any);
   };
 
   const handleSendInvite = () => {
@@ -180,7 +185,8 @@ export default function ContactsScreen() {
   const handleInAppCall = () => {
     if (callTarget) {
       setShowCallOptions(false);
-      startInAppCall(callTarget);
+      setInAppCallContact(callTarget);
+      setShowInAppCall(true);
     }
   };
 
@@ -294,7 +300,7 @@ export default function ContactsScreen() {
                 <View style={styles.contactActions}>
                   <TouchableOpacity 
                     style={styles.actionButton}
-                    onPress={() => router.push({ pathname: '/auth/chat/[id]', params: { id: contact.id } })}
+                    onPress={() => router.push(`/auth/chat/${contact.id}` as any)}
                   >
                     <MessageCircle color={theme.colors.primary} size={20} />
                   </TouchableOpacity>
@@ -306,7 +312,10 @@ export default function ContactsScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.actionButton}
-                    onPress={() => handleStartCall(contact.id, true)}
+                    onPress={() => {
+                      setVideoCallContact(contact);
+                      setShowSimpleVideoCall(true);
+                    }}
                   >
                     <Video color={theme.colors.primary} size={20} />
                   </TouchableOpacity>
@@ -495,6 +504,53 @@ export default function ContactsScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+          </View>
+        </Modal>
+
+        {/* In-App Call Modal */}
+        <Modal
+          visible={showInAppCall && inAppCallContact !== null}
+          animationType="slide"
+          onRequestClose={() => setShowInAppCall(false)}
+        >
+          {inAppCallContact && (
+            <InAppCallScreen
+              channelName={`user1_${inAppCallContact.id}`}
+              contact={inAppCallContact}
+              onEnd={() => setShowInAppCall(false)}
+            />
+          )}
+        </Modal>
+
+        {/* Simple 1-to-1 Video Call Modal */}
+        <Modal
+          visible={showSimpleVideoCall && videoCallContact !== null}
+          animationType="slide"
+          onRequestClose={() => setShowSimpleVideoCall(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: '#000' }}>
+            {/* Top bar with contact name */}
+            <View style={{ height: 90, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 2, paddingTop: 30}}>
+              <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold' }}>{videoCallContact?.name}</Text>
+            </View>
+            {/* Static image as video grid placeholder */}
+            <Image
+              source={require('../../assets/images/image.png')}
+              style={{ flex: 1, width: '100%', height: undefined, resizeMode: 'cover' }}
+              blurRadius={2}
+            />
+            {/* Remote video (contact avatar) as overlay */}
+            <View style={{ position: 'absolute', top: 80, right: 24, width: 96, height: 128, borderRadius: 16, backgroundColor: '#222', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', borderWidth: 2, borderColor: '#fff', zIndex: 3 }}>
+              <Image source={videoCallContact?.avatar ? { uri: videoCallContact.avatar } : require('../../assets/images/icon.png')} style={{ width: 96, height: 128, resizeMode: 'cover' }} />
+            </View>
+            {/* Hang up button */}
+            <TouchableOpacity
+              style={{ position: 'absolute', bottom: 48, alignSelf: 'center', backgroundColor: '#e53935', borderRadius: 32, padding: 20, zIndex: 4, elevation: 4 }}
+              onPress={() => setShowSimpleVideoCall(false)}
+              activeOpacity={0.85}
+            >
+              <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold' }}>Hang Up</Text>
+            </TouchableOpacity>
           </View>
         </Modal>
       </SafeAreaView>
