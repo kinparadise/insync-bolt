@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Animated, Easing, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Video, Calendar, Clock, Users, CreditCard as Edit3, FileText, GraduationCap, Briefcase, User, Star, ChevronRight, Grid } from 'lucide-react-native';
+import { Video, Calendar, Clock, Users, CreditCard as Edit3, FileText, GraduationCap, Briefcase, User, Star, ChevronRight, Grid2x2 as Grid } from 'lucide-react-native';
 import { useState, useEffect, useRef } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
