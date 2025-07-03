@@ -483,7 +483,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    paddingTop: 5,
+    paddingTop: 50,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
