@@ -1,0 +1,55 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: insync-backend
+  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/insync_db
+    username: ${DB_USERNAME:insync_user}
+    password: ${DB_PASSWORD:insync_password}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:your-google-client-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:your-google-client-secret}
+            scope: profile, email
+          facebook:
+            client-id: ${FACEBOOK_CLIENT_ID:your-facebook-client-id}
+            client-secret: ${FACEBOOK_CLIENT_SECRET:your-facebook-client-secret}
+            scope: email, public_profile
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890}
+  expiration: 86400000 # 24 hours in milliseconds
+
+# CORS Configuration
+cors:
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8081}
+  allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+  allowed-headers: "*"
+  allow-credentials: true
+
+# Logging
+logging:
+  level:
+    com.insync: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG

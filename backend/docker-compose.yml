@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: insync-postgres
+    environment:
+      POSTGRES_DB: insync_db
+      POSTGRES_USER: insync_user
+      POSTGRES_PASSWORD: insync_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - insync-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: insync-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - insync-network
+
+volumes:
+  postgres_data:
+
+networks:
+  insync-network:
+    driver: bridge
