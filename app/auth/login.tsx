@@ -1,30 +1,43 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { useState } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = () => {
-    // Here you would typically handle the login logic
-    router.push('/(tabs)');
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await login({ email: email.trim(), password });
+      router.replace('/(tabs)');
+    } catch (error) {
+      Alert.alert('Login Failed', error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleLogin = () => {
-    // Handle Google login
-    router.push('/(tabs)');
+    Alert.alert('Coming Soon', 'Google login will be available soon!');
   };
 
   const handleFacebookLogin = () => {
-    // Handle Facebook login
-    router.push('/(tabs)');
+    Alert.alert('Coming Soon', 'Facebook login will be available soon!');
   };
 
   const styles = createStyles(theme);
@@ -50,6 +63,7 @@ export default function LoginScreen() {
               placeholderTextColor={theme.colors.textTertiary}
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!isLoading}
             />
           </View>
 
@@ -62,6 +76,7 @@ export default function LoginScreen() {
               placeholder="Enter your password"
               placeholderTextColor={theme.colors.textTertiary}
               secureTextEntry
+              editable={!isLoading}
             />
           </View>
 
@@ -69,23 +84,37 @@ export default function LoginScreen() {
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginText}>Log In</Text>
+          <TouchableOpacity 
+            style={[styles.loginButton, isLoading && styles.loginButtonDisabled]} 
+            onPress={handleLogin}
+            disabled={isLoading}
+          >
+            <Text style={styles.loginText}>
+              {isLoading ? 'Logging in...' : 'Log In'}
+            </Text>
           </TouchableOpacity>
 
           <Text style={styles.orText}>or</Text>
 
-          <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
+          <TouchableOpacity 
+            style={[styles.socialButton, isLoading && styles.socialButtonDisabled]} 
+            onPress={handleGoogleLogin}
+            disabled={isLoading}
+          >
             <Text style={styles.socialButtonText}>Continue with Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.socialButton} onPress={handleFacebookLogin}>
+          <TouchableOpacity 
+            style={[styles.socialButton, isLoading && styles.socialButtonDisabled]} 
+            onPress={handleFacebookLogin}
+            disabled={isLoading}
+          >
             <Text style={styles.socialButtonText}>Continue with Facebook</Text>
           </TouchableOpacity>
 
           <View style={styles.signUpContainer}>
             <Text style={styles.signUpPrompt}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/auth/signup')}>
+            <TouchableOpacity onPress={() => router.push('/auth/signup')} disabled={isLoading}>
               <Text style={styles.signUpLink}>Sign Up</Text>
             </TouchableOpacity>
           </View>
@@ -157,6 +186,9 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
+  loginButtonDisabled: {
+    opacity: 0.6,
+  },
   loginText: {
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
@@ -177,6 +209,9 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: theme.colors.border,
+  },
+  socialButtonDisabled: {
+    opacity: 0.6,
   },
   socialButtonText: {
     fontSize: 16,

@@ -11,8 +11,8 @@ import {
 } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { View } from 'react-native';
-import { UserProvider } from '@/contexts/UserContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -37,7 +37,7 @@ function RootLayoutContent() {
   }
 
   return (
-    <UserProvider>
+    <AuthProvider>
       <View style={{ flex: 1, backgroundColor: theme.colors.gradientStart }}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
@@ -68,7 +68,7 @@ function RootLayoutContent() {
         </Stack>
         <StatusBar style={theme.isDark ? "light" : "dark"} />
       </View>
-    </UserProvider>
+    </AuthProvider>
   );
 }
 

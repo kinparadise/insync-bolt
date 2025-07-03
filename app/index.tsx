@@ -3,16 +3,48 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from 'react';
 
 export default function SplashScreen() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (isAuthenticated) {
+        router.replace('/(tabs)');
+      }
+    }
+  }, [isAuthenticated, isLoading]);
 
   const handleGetStarted = () => {
     router.push('/auth/welcome');
   };
 
   const styles = createStyles(theme);
+
+  if (isLoading) {
+    return (
+      <ThemedLinearGradient style={styles.container}>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.content}>
+            <View style={styles.logoContainer}>
+              <View style={styles.logoBackground}>
+                <Image
+                  source={require('../assets/images/Insync logo.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
+              </View>
+            </View>
+            <Text style={styles.loadingText}>Loading...</Text>
+          </View>
+        </SafeAreaView>
+      </ThemedLinearGradient>
+    );
+  }
 
   return (
     <ThemedLinearGradient style={styles.container}>
@@ -105,5 +137,11 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     color: '#ffffff',
     textAlign: 'center',
+  },
+  loadingText: {
+    fontSize: 18,
+    fontFamily: 'Inter-Regular',
+    color: theme.colors.textSecondary,
+    marginTop: 20,
   },
 });

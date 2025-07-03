@@ -6,16 +6,19 @@ import * as ImagePicker from 'expo-image-picker';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
-import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function EditProfileScreen() {
   const { theme } = useTheme();
   const router = useRouter();
-  const { user, updateUser } = useUser();
+  const { user, updateUser } = useAuth();
 
-  const [avatar, setAvatar] = useState<string | null>(user.avatar);
-  const [name, setName] = useState(user.name);
-  const [email, setEmail] = useState(user.email);
+  const [avatar, setAvatar] = useState<string | null>(user?.avatar || null);
+  const [name, setName] = useState(user?.name || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [department, setDepartment] = useState(user?.department || '');
+  const [isLoading, setIsLoading] = useState(false);
 
   const pickAvatar = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -29,10 +32,27 @@ export default function EditProfileScreen() {
     }
   };
 
-  const handleSave = () => {
-    updateUser({ avatar, name, email });
-    Alert.alert('Profile Updated', 'Your profile information has been saved.');
-    router.back();
+  const handleSave = async () => {
+    if (!name.trim()) {
+      Alert.alert('Error', 'Name is required');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await updateUser({
+        name: name.trim(),
+        phone: phone.trim() || undefined,
+        department: department.trim() || undefined,
+        avatar: avatar || undefined,
+      });
+      Alert.alert('Success', 'Profile updated successfully');
+      router.back();
+    } catch (error) {
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update profile');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const styles = createStyles(theme);
@@ -48,7 +68,7 @@ export default function EditProfileScreen() {
         </View>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.avatarSection}>
-            <TouchableOpacity style={styles.avatarWrapper} onPress={pickAvatar}>
+            <TouchableOpacity style={styles.avatarWrapper} onPress={pickAvatar} disabled={isLoading}>
               {avatar ? (
                 <Image source={{ uri: avatar }} style={styles.avatar} />
               ) : (
@@ -62,31 +82,65 @@ export default function EditProfileScreen() {
             </TouchableOpacity>
             <Text style={styles.avatarHint}>Tap to change avatar</Text>
           </View>
+          
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Name</Text>
+            <Text style={styles.label}>Name *</Text>
             <TextInput
               style={styles.input}
               value={name}
               onChangeText={setName}
               placeholder="Enter your name"
               placeholderTextColor={theme.colors.textTertiary}
+              editable={!isLoading}
             />
           </View>
+          
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, styles.inputDisabled]}
               value={email}
-              onChangeText={setEmail}
               placeholder="Enter your email"
               placeholderTextColor={theme.colors.textTertiary}
-              keyboardType="email-address"
-              autoCapitalize="none"
+              editable={false}
+            />
+            <Text style={styles.inputHint}>Email cannot be changed</Text>
+          </View>
+          
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Phone</Text>
+            <TextInput
+              style={styles.input}
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="Enter your phone number"
+              placeholderTextColor={theme.colors.textTertiary}
+              keyboardType="phone-pad"
+              editable={!isLoading}
             />
           </View>
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+          
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Department</Text>
+            <TextInput
+              style={styles.input}
+              value={department}
+              onChangeText={setDepartment}
+              placeholder="Enter your department"
+              placeholderTextColor={theme.colors.textTertiary}
+              editable={!isLoading}
+            />
+          </View>
+          
+          <TouchableOpacity 
+            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]} 
+            onPress={handleSave}
+            disabled={isLoading}
+          >
             <Save color="#fff" size={20} style={{ marginRight: 8 }} />
-            <Text style={styles.saveButtonText}>Save</Text>
+            <Text style={styles.saveButtonText}>
+              {isLoading ? 'Saving...' : 'Save'}
+            </Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
@@ -186,6 +240,16 @@ const createStyles = (theme: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
+  inputDisabled: {
+    backgroundColor: theme.colors.surface,
+    color: theme.colors.textSecondary,
+  },
+  inputHint: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: theme.colors.textTertiary,
+    marginTop: 4,
+  },
   saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -194,6 +258,9 @@ const createStyles = (theme: any) => StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 32,
     marginTop: 24,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
   },
   saveButtonText: {
     fontSize: 18,

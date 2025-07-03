@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Modal, FlatList, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Mic, Speaker, Camera, ChevronRight, Bell, Shield, CircleHelp as HelpCircle, LogOut, Sun, Moon, Monitor } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme, ThemeMode } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { AnimatedBackgroundCircle } from '@/components/AnimatedBackgroundCircle';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking } from 'react-native';
@@ -12,6 +13,7 @@ import { Linking } from 'react-native';
 export default function SettingsScreen() {
   const router = useRouter();
   const { theme, themeMode, setThemeMode } = useTheme();
+  const { logout, user, updateUserStatus } = useAuth();
   const [notifications, setNotifications] = useState(true);
 
   // Persistent notification toggle
@@ -81,9 +83,28 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleSignOut = () => {
-    // Navigate to welcome screen instead of auth/welcome
-    router.push('/auth/welcome');
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await updateUserStatus('OFFLINE');
+              await logout();
+              router.replace('/auth/welcome');
+            } catch (error) {
+              console.error('Sign out error:', error);
+              router.replace('/auth/welcome');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const settingsGroups = [
@@ -179,6 +200,25 @@ export default function SettingsScreen() {
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* User Info Section */}
+          {user && (
+            <View style={styles.userSection}>
+              <View style={styles.userInfo}>
+                <Text style={styles.userName}>{user.name}</Text>
+                <Text style={styles.userEmail}>{user.email}</Text>
+                {user.department && (
+                  <Text style={styles.userDepartment}>{user.department}</Text>
+                )}
+              </View>
+              <TouchableOpacity 
+                style={styles.editProfileButton}
+                onPress={() => router.push('/auth/profile')}
+              >
+                <Text style={styles.editProfileText}>Edit Profile</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {settingsGroups.map((group, groupIndex) => (
             <View key={groupIndex} style={styles.settingsGroup}>
               <Text style={styles.groupTitle}>{group.title}</Text>
@@ -337,6 +377,47 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  userSection: {
+    backgroundColor: theme.colors.card,
+    marginHorizontal: 24,
+    marginBottom: 24,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  userInfo: {
+    marginBottom: 16,
+  },
+  userName: {
+    fontSize: 20,
+    fontFamily: 'Inter-Bold',
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: theme.colors.textSecondary,
+    marginBottom: 4,
+  },
+  userDepartment: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: theme.colors.primary,
+  },
+  editProfileButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignSelf: 'flex-start',
+  },
+  editProfileText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#ffffff',
   },
   settingsGroup: {
     paddingHorizontal: 24,
