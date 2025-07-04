@@ -93,6 +93,39 @@ export interface ActionItemDto {
   updatedAt: string;
 }
 
+// Notification-related interfaces
+export interface NotificationPreferenceDto {
+  id?: number;
+  emailMeetingReminder15Min: boolean;
+  emailMeetingReminder5Min: boolean;
+  emailMeetingStarted: boolean;
+  emailMeetingEndingSoon: boolean;
+  emailMeetingEnded: boolean;
+  emailMeetingCancelled: boolean;
+  emailMeetingRescheduled: boolean;
+  smsMeetingReminder15Min: boolean;
+  smsMeetingReminder5Min: boolean;
+  smsMeetingStarted: boolean;
+  smsMeetingEndingSoon: boolean;
+  smsMeetingEnded: boolean;
+  smsMeetingCancelled: boolean;
+  smsMeetingRescheduled: boolean;
+  pushMeetingReminder15Min: boolean;
+  pushMeetingReminder5Min: boolean;
+  pushMeetingStarted: boolean;
+  pushMeetingEndingSoon: boolean;
+  pushMeetingEnded: boolean;
+  pushMeetingCancelled: boolean;
+  pushMeetingRescheduled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface RescheduleMeetingRequest {
+  newStartTime: string;
+  newEndTime?: string;
+}
+
 class ApiService {
   private token: string | null = null;
 
@@ -438,6 +471,67 @@ class ApiService {
     return this.request(`/action-items/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // Notification Management
+  async getNotificationPreferences(): Promise<NotificationPreferenceDto> {
+    const response = await this.request<NotificationPreferenceDto>('/notifications/preferences');
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to get notification preferences');
+  }
+
+  async updateNotificationPreferences(preferences: NotificationPreferenceDto): Promise<NotificationPreferenceDto> {
+    const response = await this.request<NotificationPreferenceDto>('/notifications/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(preferences),
+    });
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to update notification preferences');
+  }
+
+  async resetNotificationPreferences(): Promise<NotificationPreferenceDto> {
+    const response = await this.request<NotificationPreferenceDto>('/notifications/preferences/reset', {
+      method: 'POST',
+    });
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to reset notification preferences');
+  }
+
+  // Enhanced Meeting Management with Notifications
+  async cancelMeeting(meetingId: string): Promise<MeetingDto> {
+    const response = await this.request<MeetingDto>(`/meetings/${meetingId}`, {
+      method: 'DELETE',
+    });
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to cancel meeting');
+  }
+
+  async rescheduleMeeting(meetingId: string, rescheduleData: RescheduleMeetingRequest): Promise<MeetingDto> {
+    const response = await this.request<MeetingDto>(`/meetings/${meetingId}/reschedule`, {
+      method: 'PUT',
+      body: JSON.stringify(rescheduleData),
+    });
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to reschedule meeting');
+  }
+
+  // Auth diagnosis for debugging
+  async diagnoseAuth() {
+    const response = await this.request('/auth/diagnose');
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to diagnose authentication');
   }
 
   // Token management utilities

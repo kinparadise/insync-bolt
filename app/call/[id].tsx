@@ -1,8 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, Modal, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, Modal, TextInput, ScrollView, Animated, Dimensions } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Mic, Video, MicOff, VideoOff, PhoneOff, Users, MessageCircle, Monitor, Settings, MoveHorizontal as MoreHorizontal, Hand, Camera, Volume2, Send, X, Share, UserPlus, Pause, Play, Square, UserX, Shuffle, Plus, CreditCard as Edit3, Trash2, ArrowRight, GraduationCap } from 'lucide-react-native';
-import { useState, useEffect } from 'react';
+import { Mic, Video, MicOff, VideoOff, PhoneOff, Users, MessageCircle, Monitor, Settings, MoveHorizontal as MoreHorizontal, Hand, Camera, Volume2, Send, X, Share, UserPlus, Pause, Play, Square, UserX, Shuffle, Plus, CreditCard as Edit3, Trash2, ArrowRight, GraduationCap, Wifi, WifiOff, Battery, Clock, Maximize2, Minimize2, RotateCcw, FileText, Calendar, Filter, Search, ChevronDown, ChevronUp, Star, Flag, Download, Upload, Eye, EyeOff, Zap, Shield, Award, Target, Lightbulb, Timer, BarChart3, TrendingUp, Brain, Globe, Lock, Unlock, PaintBucket, Palette, Music, PlayCircle, StopCircle, FastForward, Rewind, SkipBack, SkipForward, Volume1, VolumeX, Headphones, Speaker } from 'lucide-react-native';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MeetingSummaryComponent } from '@/components/MeetingSummaryComponent';
@@ -11,6 +11,11 @@ export default function CallScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { theme } = useTheme();
+  
+  // Screen dimensions for responsive design
+  const { width, height } = Dimensions.get('window');
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
   
   // Call states
   const [isMuted, setIsMuted] = useState(false);
@@ -29,6 +34,89 @@ export default function CallScreen() {
   const [chatMessage, setChatMessage] = useState('');
   const [isInBreakoutRoom, setIsInBreakoutRoom] = useState(false);
   const [currentBreakoutRoom, setCurrentBreakoutRoom] = useState<string | null>(null);
+
+  // Advanced professional features
+  const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor'>('excellent');
+  const [showNetworkStats, setShowNetworkStats] = useState(false);
+  const [showAiInsights, setShowAiInsights] = useState(false);
+  const [showPolls, setShowPolls] = useState(false);
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [showTranscription, setShowTranscription] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [focusedParticipant, setFocusedParticipant] = useState<string | null>(null);
+  const [layoutMode, setLayoutMode] = useState<'grid' | 'speaker' | 'gallery'>('grid');
+  const [showReactions, setShowReactions] = useState(false);
+  const [audioProcessing, setAudioProcessing] = useState({
+    noiseReduction: true,
+    echoSuppression: true,
+    autoGainControl: true,
+  });
+  const [videoEffects, setVideoEffects] = useState({
+    backgroundBlur: false,
+    virtualBackground: false,
+    beautyFilter: false,
+  });
+  const [meetingSecurity, setMeetingSecurity] = useState({
+    waitingRoom: true,
+    endToEndEncryption: true,
+    recordingNotification: true,
+  });
+
+  // Real-time analytics
+  const [networkStats, setNetworkStats] = useState({
+    bandwidth: 2.5, // Mbps
+    latency: 45, // ms
+    packetLoss: 0.1, // %
+    jitter: 12, // ms
+  });
+
+  // AI-powered features
+  const [aiInsights, setAiInsights] = useState({
+    engagementScore: 85,
+    talkTime: { user: 12, total: 45 },
+    sentimentAnalysis: 'positive',
+    keyTopics: ['Q1 Planning', 'Budget Review', 'Team Goals'],
+    actionItems: 2,
+    recommendations: [
+      'Consider reducing meeting length by 10 minutes',
+      'Schedule follow-up for budget discussion',
+    ],
+  });
+
+  // Live transcription
+  const [transcription, setTranscription] = useState([
+    {
+      id: '1',
+      speaker: 'Emily Johnson',
+      text: 'Welcome everyone to our Q1 planning meeting. Let\'s start with the agenda items.',
+      timestamp: new Date(Date.now() - 30000),
+      confidence: 0.95,
+    },
+    {
+      id: '2',
+      speaker: 'Jason Miller',
+      text: 'Thanks Emily. I have the budget report ready to share.',
+      timestamp: new Date(Date.now() - 15000),
+      confidence: 0.88,
+    },
+  ]);
+
+  // Polls and Q&A
+  const [activePoll, setActivePoll] = useState<any>(null);
+  const [polls, setPolls] = useState([
+    {
+      id: '1',
+      question: 'What should be our top priority for Q1?',
+      options: [
+        { id: 'a', text: 'Product Development', votes: 3 },
+        { id: 'b', text: 'Marketing Campaign', votes: 1 },
+        { id: 'c', text: 'Customer Support', votes: 2 },
+      ],
+      isActive: true,
+      createdBy: 'Emily Johnson',
+    },
+  ]);
 
   // Breakout room creation states
   const [newRoomName, setNewRoomName] = useState('');
@@ -459,553 +547,460 @@ export default function CallScreen() {
 
   const [showClassroomHub, setShowClassroomHub] = useState(false);
 
+  // Advanced professional handlers
+  const handleToggleAudioProcessing = (feature: keyof typeof audioProcessing) => {
+    setAudioProcessing(prev => ({
+      ...prev,
+      [feature]: !prev[feature]
+    }));
+    Alert.alert('Audio Settings', `${feature} ${audioProcessing[feature] ? 'disabled' : 'enabled'}`);
+  };
+
+  const handleToggleVideoEffect = (effect: keyof typeof videoEffects) => {
+    setVideoEffects(prev => ({
+      ...prev,
+      [effect]: !prev[effect]
+    }));
+    Alert.alert('Video Effects', `${effect} ${videoEffects[effect] ? 'disabled' : 'enabled'}`);
+  };
+
+  const handleLayoutChange = (mode: 'grid' | 'speaker' | 'gallery') => {
+    setLayoutMode(mode);
+    Animated.timing(slideAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
+  const handleFocusParticipant = (participantId: string) => {
+    setFocusedParticipant(participantId === focusedParticipant ? null : participantId);
+    setLayoutMode('speaker');
+  };
+
+  const handleToggleTranscription = () => {
+    setShowTranscription(!showTranscription);
+    if (!showTranscription) {
+      // Simulate live transcription updates
+      const interval = setInterval(() => {
+        setTranscription(prev => [...prev, {
+          id: Date.now().toString(),
+          speaker: 'Live Speaker',
+          text: 'This is a simulated live transcription...',
+          timestamp: new Date(),
+          confidence: 0.92,
+        }]);
+      }, 5000);
+      
+      setTimeout(() => clearInterval(interval), 30000);
+    }
+  };
+
+  const handleCreatePoll = (question: string, options: string[]) => {
+    const newPoll = {
+      id: Date.now().toString(),
+      question,
+      options: options.map((text, index) => ({
+        id: String.fromCharCode(97 + index),
+        text,
+        votes: 0,
+      })),
+      isActive: true,
+      createdBy: 'You',
+    };
+    setPolls(prev => [...prev, newPoll]);
+    setActivePoll(newPoll);
+    Alert.alert('Poll Created', 'Your poll has been shared with all participants.');
+  };
+
+  const handleVotePoll = (pollId: string, optionId: string) => {
+    setPolls(prev => prev.map(poll => 
+      poll.id === pollId 
+        ? {
+            ...poll,
+            options: poll.options.map(option =>
+              option.id === optionId
+                ? { ...option, votes: option.votes + 1 }
+                : option
+            )
+          }
+        : poll
+    ));
+  };
+
+  const handleSendReaction = (reaction: string) => {
+    setShowReactions(true);
+    // Animate reaction
+    Animated.sequence([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    
+    setTimeout(() => setShowReactions(false), 2000);
+  };
+
+  const handleNetworkDiagnostics = () => {
+    setShowNetworkStats(!showNetworkStats);
+    // Simulate network stats update
+    const updateStats = () => {
+      setNetworkStats({
+        bandwidth: 2.1 + Math.random() * 0.8,
+        latency: 40 + Math.random() * 20,
+        packetLoss: Math.random() * 0.5,
+        jitter: 10 + Math.random() * 10,
+      });
+    };
+    
+    const interval = setInterval(updateStats, 2000);
+    setTimeout(() => clearInterval(interval), 20000);
+  };
+
+  const handleAiInsights = () => {
+    setShowAiInsights(!showAiInsights);
+    // Update AI insights
+    setAiInsights(prev => ({
+      ...prev,
+      engagementScore: 80 + Math.random() * 20,
+      talkTime: {
+        user: prev.talkTime.user + 1,
+        total: prev.talkTime.total + 1,
+      },
+    }));
+  };
+
+  const handleExportMeetingData = () => {
+    Alert.alert(
+      'Export Meeting Data',
+      'Choose export format:',
+      [
+        { text: 'PDF Report', onPress: () => Alert.alert('Export', 'PDF report generated successfully!') },
+        { text: 'Excel Analytics', onPress: () => Alert.alert('Export', 'Excel file with analytics exported!') },
+        { text: 'Video Recording', onPress: () => Alert.alert('Export', 'Video recording will be available shortly!') },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleSecuritySettings = () => {
+    Alert.alert(
+      'Security Settings',
+      'Manage meeting security options:',
+      [
+        { 
+          text: 'Toggle Waiting Room', 
+          onPress: () => {
+            setMeetingSecurity(prev => ({ ...prev, waitingRoom: !prev.waitingRoom }));
+            Alert.alert('Security', `Waiting room ${meetingSecurity.waitingRoom ? 'disabled' : 'enabled'}`);
+          }
+        },
+        { 
+          text: 'End-to-End Encryption', 
+          onPress: () => Alert.alert('Security', 'End-to-end encryption is active and cannot be disabled during the meeting.')
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  // Network quality monitoring
+  useEffect(() => {
+    const checkNetworkQuality = () => {
+      const { bandwidth, latency, packetLoss } = networkStats;
+      if (bandwidth < 1.0 || latency > 150 || packetLoss > 3) {
+        setConnectionQuality('poor');
+      } else if (bandwidth < 2.0 || latency > 100 || packetLoss > 1) {
+        setConnectionQuality('good');
+      } else {
+        setConnectionQuality('excellent');
+      }
+    };
+
+    const interval = setInterval(checkNetworkQuality, 5000);
+    return () => clearInterval(interval);
+  }, [networkStats]);
+
   const styles = createStyles(theme);
 
   return (
     <ThemedLinearGradient style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.callInfo}>
-            <Text style={styles.callTitle}>
-              {isInBreakoutRoom 
-                ? `Breakout: ${breakoutRooms.find(r => r.id === currentBreakoutRoom)?.name || 'Room'}`
-                : 'Team Standup'
-              }
-            </Text>
-            <Text style={styles.callDuration}>{formatDuration(callDuration)}</Text>
-            {isRecording && (
-              <View style={styles.recordingIndicator}>
-                <View style={styles.recordingDot} />
-                <Text style={styles.recordingText}>REC</Text>
-              </View>
-            )}
+      <SafeAreaView style={styles.googleMeetSafeArea}>
+        {/* Minimal Header - Top Left User Info */}
+        <View style={styles.googleMeetHeader}>
+          <View style={styles.participantInfoHeader}>
+            <View style={styles.participantAvatarContainer}>
+              <Text style={styles.participantInitial}>K</Text>
+            </View>
+            <View style={styles.participantDetails}>
+              <Text style={styles.participantNameHeader} numberOfLines={1}>
+                kelvinkissieduagyei@...
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.expandButton}>
+              <ChevronDown color="#ffffff" size={16} />
+            </TouchableOpacity>
           </View>
-          <View style={styles.headerActions}>
-            {isInBreakoutRoom && (
-              <TouchableOpacity style={styles.returnButton} onPress={handleReturnToMainRoom}>
-                <ArrowRight color="#ffffff" size={16} />
-                <Text style={styles.returnButtonText}>Main Room</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity style={styles.settingsButton} onPress={handleSettings}>
-              <Settings color={theme.colors.text} size={20} />
+
+          {/* Top Right Controls */}
+          <View style={styles.topRightControls}>
+            <TouchableOpacity style={styles.topControlButton}>
+              <Monitor color="#ffffff" size={20} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.topControlButton}>
+              <Volume2 color="#ffffff" size={20} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Video Grid */}
-        <View style={styles.videoGrid}>
-          {participants.map((participant) => (
-            <View key={participant.id} style={styles.videoTile}>
-              {participant.isVideoOn ? (
-                <Image source={{ uri: participant.avatar }} style={styles.participantVideo} />
+        {/* Main Video Area */}
+        <View style={styles.googleMeetVideoArea}>
+          {/* Main Participant (full screen) */}
+          <View style={styles.mainParticipantTile}>
+            {participants[0]?.isVideoOn ? (
+              <Image source={{ uri: participants[0]?.avatar }} style={styles.googleMeetParticipantVideo} />
+            ) : (
+              <View style={styles.googleMeetVideoOffContainer}>
+                <Image source={{ uri: participants[0]?.avatar }} style={styles.googleMeetParticipantAvatar} />
+              </View>
+            )}
+            
+            {/* Main participant name at bottom */}
+            <View style={styles.mainParticipantNameContainer}>
+              <Text style={styles.mainParticipantName}>{participants[0]?.name || 'Kelvin'}</Text>
+              <TouchableOpacity style={styles.participantOptionsButton}>
+                <MoreHorizontal color="#ffffff" size={16} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Small participant in bottom-right corner (Picture-in-Picture) */}
+          {participants.length > 1 && (
+            <View style={styles.smallParticipantTile}>
+              {participants[1]?.isVideoOn ? (
+                <Image source={{ uri: participants[1]?.avatar }} style={styles.googleMeetParticipantVideo} />
               ) : (
-                <View style={styles.videoOffContainer}>
-                  <Image source={{ uri: participant.avatar }} style={styles.avatarImage} />
-                  <VideoOff color={theme.colors.textSecondary} size={24} />
+                <View style={styles.googleMeetVideoOffContainer}>
+                  <Image source={{ uri: participants[1]?.avatar }} style={styles.smallParticipantAvatar} />
                 </View>
               )}
               
-              <View style={styles.participantOverlay}>
-                <View style={styles.participantInfo}>
-                  <Text style={styles.participantName}>{participant.name}</Text>
-                  {participant.isHost && (
-                    <Text style={styles.hostBadge}>Host</Text>
-                  )}
-                </View>
-                <View style={styles.participantControls}>
-                  {!participant.isMuted ? (
-                    <View style={styles.micIndicator}>
-                      <Mic color="#4CAF50" size={12} />
-                    </View>
-                  ) : (
-                    <View style={[styles.micIndicator, styles.micMuted]}>
-                      <MicOff color="#F44336" size={12} />
-                    </View>
-                  )}
-                </View>
+              {/* Small participant controls */}
+              <View style={styles.smallParticipantContainer}>
+                <TouchableOpacity style={styles.smallParticipantOptions}>
+                  <Monitor color="#ffffff" size={12} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.smallParticipantMoreOptions}>
+                  <MoreHorizontal color="#ffffff" size={12} />
+                </TouchableOpacity>
               </View>
             </View>
-          ))}
+          )}
         </View>
 
-        {/* Controls */}
-        <View style={styles.controls}>
-          <View style={styles.primaryControls}>
+        {/* Google Meet Style Bottom Controls */}
+        <View style={styles.googleMeetBottomControls}>
+          <View style={styles.googleMeetControlsRow}>
+            {/* Mic Button */}
             <TouchableOpacity 
-              style={[styles.controlButton, isMuted && styles.controlButtonMuted]} 
+              style={[styles.googleMeetControlButton, isMuted && styles.googleMeetControlButtonMuted]}
               onPress={() => setIsMuted(!isMuted)}
             >
               {isMuted ? (
-                <MicOff color="#ffffff" size={28} />
+                <MicOff color="#ffffff" size={24} />
               ) : (
-                <Mic color={theme.colors.text} size={28} />
+                <Mic color="#ffffff" size={24} />
               )}
             </TouchableOpacity>
 
+            {/* Video Button */}
             <TouchableOpacity 
-              style={[styles.controlButton, !isVideoOn && styles.controlButtonMuted]} 
+              style={[styles.googleMeetControlButton, !isVideoOn && styles.googleMeetControlButtonMuted]}
               onPress={() => setIsVideoOn(!isVideoOn)}
             >
               {isVideoOn ? (
-                <Video color={theme.colors.text} size={28} />
+                <Video color="#ffffff" size={24} />
               ) : (
-                <VideoOff color="#ffffff" size={28} />
+                <VideoOff color="#ffffff" size={24} />
               )}
             </TouchableOpacity>
 
+            {/* Reaction Button */}
             <TouchableOpacity 
-              style={styles.endCallButton} 
-              onPress={handleEndCall}
+              style={styles.googleMeetControlButton}
+              onPress={() => handleSendReaction('👍')}
             >
-              <PhoneOff color="#ffffff" size={32} />
+              <Text style={styles.reactionButtonText}>😊</Text>
             </TouchableOpacity>
 
+            {/* More Options Button */}
             <TouchableOpacity 
-              style={[styles.controlButton, isSpeakerOn && styles.controlButtonActive]} 
-              onPress={() => setIsSpeakerOn(!isSpeakerOn)}
-            >
-              <Volume2 color={isSpeakerOn ? "#ffffff" : theme.colors.text} size={28} />
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.controlButton, showChat && styles.controlButtonActive]}
-              onPress={() => setShowChat(!showChat)}
-            >
-              <MessageCircle color={showChat ? "#ffffff" : theme.colors.text} size={28} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.secondaryControls}>
-            <TouchableOpacity 
-              style={[styles.secondaryButton, isHandRaised && styles.secondaryButtonActive]}
-              onPress={() => setIsHandRaised(!isHandRaised)}
-            >
-              <Hand color={isHandRaised ? "#ffffff" : theme.colors.text} size={18} />
-              <Text style={[styles.secondaryButtonText, isHandRaised && styles.secondaryButtonTextActive]}>
-                {isHandRaised ? 'Lower' : 'Raise'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.secondaryButton, showParticipants && styles.secondaryButtonActive]}
-              onPress={() => setShowParticipants(!showParticipants)}
-            >
-              <Users color={showParticipants ? "#ffffff" : theme.colors.text} size={18} />
-              <Text style={[styles.secondaryButtonText, showParticipants && styles.secondaryButtonTextActive]}>
-                {participants.length}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.secondaryButton, showScreenShare && styles.secondaryButtonActive]}
-              onPress={showScreenShare ? handleStopScreenShare : handleStartScreenShare}
-            >
-              <Monitor color={showScreenShare ? "#ffffff" : theme.colors.text} size={18} />
-              <Text style={[styles.secondaryButtonText, showScreenShare && styles.secondaryButtonTextActive]}>
-                {showScreenShare ? 'Stop' : 'Share'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.secondaryButton, isRecording && styles.recordingButton]}
-              onPress={isRecording ? handleStopRecording : handleStartRecording}
-            >
-              {isRecording ? (
-                <Square color="#ffffff" size={16} />
-              ) : (
-                <Camera color={theme.colors.text} size={18} />
-              )}
-              <Text style={[styles.secondaryButtonText, isRecording && styles.secondaryButtonTextActive]}>
-                {isRecording ? 'Stop' : 'Record'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.secondaryButton, showMoreOptions && styles.secondaryButtonActive]}
+              style={styles.googleMeetControlButton}
               onPress={() => setShowMoreOptions(!showMoreOptions)}
             >
-              <MoreHorizontal color={showMoreOptions ? "#ffffff" : theme.colors.text} size={18} />
-              <Text style={[styles.secondaryButtonText, showMoreOptions && styles.secondaryButtonTextActive]}>
-                More
-              </Text>
+              <MoreHorizontal color="#ffffff" size={24} />
             </TouchableOpacity>
 
+            {/* End Call Button - Red */}
             <TouchableOpacity 
-              style={[styles.secondaryButton, showClassroomHub && styles.secondaryButtonActive]}
-              onPress={() => setShowClassroomHub(true)}
+              style={styles.googleMeetEndCallButton}
+              onPress={handleEndCall}
             >
-              <GraduationCap color={showClassroomHub ? "#ffffff" : theme.colors.text} size={18} />
-              <Text style={[styles.secondaryButtonText, showClassroomHub && styles.secondaryButtonTextActive]}>
-                Classroom
-              </Text>
+              <PhoneOff color="#ffffff" size={24} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Chat Panel */}
-        <Modal
-          visible={showChat}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowChat(false)}
-        >
-          <View style={styles.chatOverlay}>
-            <View style={styles.chatPanel}>
-              <View style={styles.chatHeader}>
-                <Text style={styles.chatTitle}>Meeting Chat</Text>
-                <TouchableOpacity onPress={() => setShowChat(false)}>
-                  <X size={24} color={theme.colors.text} />
-                </TouchableOpacity>
-              </View>
-              
-              <ScrollView style={styles.chatMessages} showsVerticalScrollIndicator={false}>
-                {chatMessages.map((message) => (
-                  <View key={message.id} style={styles.chatMessage}>
-                    <View style={styles.messageHeader}>
-                      <Text style={styles.messageSender}>{message.sender}</Text>
-                      <Text style={styles.messageTime}>{formatTime(message.timestamp)}</Text>
-                    </View>
-                    <Text style={styles.messageText}>{message.message}</Text>
-                  </View>
-                ))}
-              </ScrollView>
-              
-              <View style={styles.chatInput}>
-                <TextInput
-                  style={styles.messageInput}
-                  value={chatMessage}
-                  onChangeText={setChatMessage}
-                  placeholder="Type a message..."
-                  placeholderTextColor={theme.colors.textTertiary}
-                  multiline
-                />
-                <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-                  <Send size={20} color="#ffffff" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Participants Panel */}
-        <Modal
-          visible={showParticipants}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowParticipants(false)}
-        >
-          <View style={styles.participantsOverlay}>
-            <View style={styles.participantsPanel}>
-              <View style={styles.participantsHeader}>
-                <Text style={styles.participantsTitle}>Participants ({participants.length})</Text>
-                <View style={styles.participantsActions}>
-                  <TouchableOpacity style={styles.participantAction} onPress={handleInviteParticipants}>
-                    <UserPlus size={20} color={theme.colors.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.participantAction} onPress={handleMuteAll}>
-                    <MicOff size={20} color={theme.colors.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => setShowParticipants(false)}>
-                    <X size={24} color={theme.colors.text} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              
-              <ScrollView style={styles.participantsList} showsVerticalScrollIndicator={false}>
-                {participants.map((participant) => (
-                  <View key={participant.id} style={styles.participantItem}>
-                    <Image source={{ uri: participant.avatar }} style={styles.participantAvatar} />
-                    <View style={styles.participantDetails}>
-                      <Text style={styles.participantItemName}>{participant.name}</Text>
-                      {participant.isHost && (
-                        <Text style={styles.participantRole}>Host</Text>
-                      )}
-                    </View>
-                    <View style={styles.participantStatus}>
-                      {!participant.isMuted && (
-                        <Mic size={16} color={theme.colors.success} />
-                      )}
-                      {participant.isVideoOn && (
-                        <Video size={16} color={theme.colors.success} />
-                      )}
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          </View>
-        </Modal>
-
-        {/* More Options Panel */}
-        <Modal
-          visible={showMoreOptions}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowMoreOptions(false)}
-        >
-          <View style={styles.moreOptionsOverlay}>
-            <View style={styles.moreOptionsPanel}>
-              <View style={styles.moreOptionsHeader}>
-                <Text style={styles.moreOptionsTitle}>More Options</Text>
-                <TouchableOpacity onPress={() => setShowMoreOptions(false)}>
-                  <X size={24} color={theme.colors.text} />
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.moreOptionsList}>
-                <TouchableOpacity style={styles.moreOption} onPress={handleInviteParticipants}>
-                  <Share size={20} color={theme.colors.primary} />
-                  <Text style={styles.moreOptionText}>Share Meeting Link</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.moreOption} onPress={() => setShowBreakoutRooms(true)}>
-                  <Shuffle size={20} color={theme.colors.primary} />
-                  <Text style={styles.moreOptionText}>Breakout Rooms</Text>
-                  <View style={styles.roomCountBadge}>
-                    <Text style={styles.roomCountText}>{breakoutRooms.filter(r => r.isActive).length}</Text>
-                  </View>
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.moreOption} onPress={handleMuteAll}>
-                  <MicOff size={20} color={theme.colors.primary} />
-                  <Text style={styles.moreOptionText}>Mute All Participants</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.moreOption} 
-                  onPress={isRecording ? handleStopRecording : handleStartRecording}
-                >
-                  {isRecording ? (
-                    <Square size={20} color={theme.colors.error} />
-                  ) : (
-                    <Camera size={20} color={theme.colors.primary} />
-                  )}
-                  <Text style={styles.moreOptionText}>
-                    {isRecording ? 'Stop Recording' : 'Start Recording'}
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.moreOption} onPress={handleSettings}>
-                  <Settings size={20} color={theme.colors.primary} />
-                  <Text style={styles.moreOptionText}>Meeting Settings</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Enhanced Breakout Rooms Panel */}
-        <Modal
-          visible={showBreakoutRooms}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowBreakoutRooms(false)}
-        >
-          <View style={styles.breakoutOverlay}>
-            <View style={styles.breakoutPanel}>
-              <View style={styles.breakoutHeader}>
-                <Text style={styles.breakoutTitle}>Breakout Rooms ({breakoutRooms.length})</Text>
-                <View style={styles.breakoutActions}>
-                  <TouchableOpacity style={styles.breakoutAction} onPress={() => setShowCreateBreakout(true)}>
-                    <Plus size={20} color={theme.colors.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.breakoutAction} onPress={handleAutoAssignParticipants}>
-                    <Shuffle size={20} color={theme.colors.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.breakoutAction} onPress={handleBroadcastMessage}>
-                    <MessageCircle size={20} color={theme.colors.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => setShowBreakoutRooms(false)}>
-                    <X size={24} color={theme.colors.text} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              
-              <ScrollView style={styles.breakoutList} showsVerticalScrollIndicator={false}>
-                {breakoutRooms.map((room) => (
-                  <View key={room.id} style={styles.breakoutRoom}>
-                    <View style={styles.roomInfo}>
-                      <View style={styles.roomHeader}>
-                        <Text style={styles.roomName}>{room.name}</Text>
-                        <View style={styles.roomStatusContainer}>
-                          <TouchableOpacity 
-                            style={styles.statusToggle}
-                            onPress={() => handleToggleRoomStatus(room.id)}
-                          >
-                            <View style={[styles.statusDot, { backgroundColor: room.isActive ? theme.colors.success : theme.colors.textTertiary }]} />
-                            <Text style={styles.statusText}>{room.isActive ? 'Active' : 'Inactive'}</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                      
-                      <Text style={styles.roomTopic}>Topic: {room.topic}</Text>
-                      <Text style={styles.roomCapacity}>
-                        {room.participants.length}/{room.capacity} participants
-                      </Text>
-                      
-                      {room.participants.length > 0 && (
-                        <View style={styles.roomParticipants}>
-                          <Text style={styles.participantsLabel}>Participants:</Text>
-                          <View style={styles.participantAvatars}>
-                            {room.participants.slice(0, 3).map((participant) => (
-                              <Image 
-                                key={participant.id} 
-                                source={{ uri: participant.avatar }} 
-                                style={styles.participantMiniAvatar} 
-                              />
-                            ))}
-                            {room.participants.length > 3 && (
-                              <View style={styles.moreParticipants}>
-                                <Text style={styles.moreParticipantsText}>+{room.participants.length - 3}</Text>
-                              </View>
-                            )}
-                          </View>
-                        </View>
-                      )}
-                    </View>
-                    
-                    <View style={styles.roomActions}>
-                      <TouchableOpacity 
-                        style={[styles.joinRoomButton, !room.isActive && styles.joinRoomButtonDisabled]}
-                        onPress={() => room.isActive && handleJoinBreakoutRoom(room.id, room.name)}
-                        disabled={!room.isActive}
-                      >
-                        <Text style={[styles.joinRoomText, !room.isActive && styles.joinRoomTextDisabled]}>
-                          Join
-                        </Text>
-                      </TouchableOpacity>
-                      
-                      <TouchableOpacity 
-                        style={styles.deleteRoomButton}
-                        onPress={() => handleDeleteBreakoutRoom(room.id, room.name)}
-                      >
-                        <Trash2 size={16} color={theme.colors.error} />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
-                
-                {breakoutRooms.length === 0 && (
-                  <View style={styles.emptyRooms}>
-                    <Shuffle size={48} color={theme.colors.textTertiary} />
-                    <Text style={styles.emptyRoomsText}>No breakout rooms created yet</Text>
-                    <Text style={styles.emptyRoomsSubtext}>Create rooms to enable small group discussions</Text>
-                  </View>
-                )}
-              </ScrollView>
-              
-              <View style={styles.breakoutFooter}>
-                <TouchableOpacity style={styles.createRoomButton} onPress={() => setShowCreateBreakout(true)}>
-                  <Plus size={16} color="#ffffff" />
-                  <Text style={styles.createRoomText}>Create New Room</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Create Breakout Room Modal */}
-        <Modal
-          visible={showCreateBreakout}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowCreateBreakout(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Create Breakout Room</Text>
-                <TouchableOpacity onPress={() => setShowCreateBreakout(false)}>
-                  <X size={24} color={theme.colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.modalBody}>
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Room Name</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={newRoomName}
-                    onChangeText={setNewRoomName}
-                    placeholder="Enter room name"
-                    placeholderTextColor={theme.colors.textTertiary}
-                  />
-                </View>
-                
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Capacity</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={roomCapacity}
-                    onChangeText={setRoomCapacity}
-                    placeholder="Maximum participants"
-                    placeholderTextColor={theme.colors.textTertiary}
-                    keyboardType="numeric"
-                  />
-                </View>
-                
-                <View style={styles.switchGroup}>
-                  <Text style={styles.switchLabel}>Auto-assign participants</Text>
-                  <TouchableOpacity 
-                    style={[styles.switch, autoAssign && styles.switchActive]}
-                    onPress={() => setAutoAssign(!autoAssign)}
-                  >
-                    <View style={[styles.switchThumb, autoAssign && styles.switchThumbActive]} />
-                  </TouchableOpacity>
-                </View>
-                
-                <View style={styles.modalActions}>
-                  <TouchableOpacity 
-                    style={styles.cancelButton}
-                    onPress={() => setShowCreateBreakout(false)}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.createButton}
-                    onPress={handleCreateBreakoutRoom}
-                  >
-                    <Text style={styles.createButtonText}>Create Room</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Meeting Summary Modal */}
-        <MeetingSummaryComponent
-          visible={showSummary}
-          onClose={handleSummaryClose}
-          meetingData={meetingData}
-        />
-
-        {/* Classroom Hub Modal */}
-        <Modal
-          visible={showClassroomHub}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowClassroomHub(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Virtual Classroom</Text>
-                <TouchableOpacity onPress={() => setShowClassroomHub(false)}>
-                  <X size={24} color={theme.colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.modalBody}>
-                <Text style={{ color: theme.colors.textSecondary, fontSize: 16, textAlign: 'center', marginTop: 40 }}>
-                  All your advanced tools (whiteboard, notes, polls, breakouts, etc.) will be accessible here!
-                </Text>
-              </View>
-            </View>
-          </View>
-        </Modal>
+        {/* Live Reactions Overlay */}
+        {showReactions && (
+          <Animated.View style={[styles.reactionsOverlay, { opacity: fadeAnim }]}>
+            <Text style={styles.reactionEmoji}>👍</Text>
+          </Animated.View>
+        )}
       </SafeAreaView>
+
+      {/* More Options Modal */}
+      <Modal
+        visible={showMoreOptions}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowMoreOptions(false)}
+      >
+        <View style={styles.moreOptionsOverlay}>
+          <View style={styles.moreOptionsPanel}>
+            <View style={styles.moreOptionsHeader}>
+              <Text style={styles.moreOptionsTitle}>More Options</Text>
+              <TouchableOpacity onPress={() => setShowMoreOptions(false)}>
+                <X size={24} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.moreOptionsList}>
+              <TouchableOpacity style={styles.moreOption} onPress={() => setShowChat(true)}>
+                <MessageCircle size={24} color={theme.colors.primary} />
+                <Text style={styles.moreOptionText}>Chat</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.moreOption} onPress={() => setShowParticipants(true)}>
+                <Users size={24} color={theme.colors.primary} />
+                <Text style={styles.moreOptionText}>Participants</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.moreOption} onPress={() => setShowScreenShare(true)}>
+                <Monitor size={24} color={theme.colors.primary} />
+                <Text style={styles.moreOptionText}>Share Screen</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.moreOption} onPress={() => setIsRecording(!isRecording)}>
+                <Square size={24} color={isRecording ? theme.colors.error : theme.colors.primary} />
+                <Text style={styles.moreOptionText}>{isRecording ? 'Stop Recording' : 'Start Recording'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Chat Panel */}
+      <Modal
+        visible={showChat}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowChat(false)}
+      >
+        <View style={styles.chatOverlay}>
+          <View style={styles.chatPanel}>
+            <View style={styles.chatHeader}>
+              <Text style={styles.chatTitle}>Meeting Chat</Text>
+              <TouchableOpacity onPress={() => setShowChat(false)}>
+                <X size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.chatMessages} showsVerticalScrollIndicator={false}>
+              {chatMessages.map((message) => (
+                <View key={message.id} style={styles.chatMessage}>
+                  <View style={styles.messageHeader}>
+                    <Text style={styles.messageSender}>{message.sender}</Text>
+                    <Text style={styles.messageTime}>{formatTime(message.timestamp)}</Text>
+                  </View>
+                  <Text style={styles.messageText}>{message.message}</Text>
+                </View>
+              ))}
+            </ScrollView>
+            
+            <View style={styles.chatInput}>
+              <TextInput
+                style={styles.messageInput}
+                value={chatMessage}
+                onChangeText={setChatMessage}
+                placeholder="Type a message..."
+                placeholderTextColor={theme.colors.textTertiary}
+                multiline
+              />
+              <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
+                <Send size={20} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Participants Panel */}
+      <Modal
+        visible={showParticipants}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowParticipants(false)}
+      >
+        <View style={styles.participantsOverlay}>
+          <View style={styles.participantsPanel}>
+            <View style={styles.participantsHeader}>
+              <Text style={styles.participantsTitle}>Participants ({participants.length})</Text>
+              <View style={styles.participantsActions}>
+                <TouchableOpacity style={styles.participantAction} onPress={handleInviteParticipants}>
+                  <UserPlus size={20} color={theme.colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.participantAction} onPress={handleMuteAll}>
+                  <MicOff size={20} color={theme.colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowParticipants(false)}>
+                  <X size={24} color={theme.colors.text} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            
+            <ScrollView style={styles.participantsList} showsVerticalScrollIndicator={false}>
+              {participants.map((participant) => (
+                <View key={participant.id} style={styles.participantItem}>
+                  <Image source={{ uri: participant.avatar }} style={styles.participantAvatar} />
+                  <View style={styles.participantDetails}>
+                    <Text style={styles.participantItemName}>{participant.name}</Text>
+                    {participant.isHost && (
+                      <Text style={styles.participantRole}>Host</Text>
+                    )}
+                  </View>
+                  <View style={styles.participantStatus}>
+                    {!participant.isMuted && (
+                      <Mic size={16} color={theme.colors.success} />
+                    )}
+                    {participant.isVideoOn && (
+                      <Video size={16} color={theme.colors.success} />
+                    )}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ThemedLinearGradient>
   );
 }
@@ -1024,7 +1019,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    marginTop: 5,
   },
   callInfo: {
     alignItems: 'center',
@@ -1177,50 +1171,443 @@ const createStyles = (theme: any) => StyleSheet.create({
     gap: 15,
     marginBottom: 20,
   },
-  controlButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.colors.card,
+  // Google Meet Style Controls
+  controlsContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: 40,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backdropFilter: 'blur(20px)',
+  },
+  primaryControlBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  meetingInfoSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  timeText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#ffffff',
+  },
+  recordingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ea4335',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  recordingPulse: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ffffff',
+  },
+  recordingBadgeText: {
+    fontSize: 11,
+    fontFamily: 'Inter-Bold',
+    color: '#ffffff',
+  },
+  centerControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 2,
+    justifyContent: 'center',
+  },
+  googleMeetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface === '#1a1a1a' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(60, 64, 67, 0.1)',
+    borderRadius: 24,
+    padding: 2,
+    minWidth: 48,
+    height: 48,
+  },
+  googleMeetButtonDanger: {
+    backgroundColor: '#ea4335',
+  },
+  googleMeetButtonActive: {
+    backgroundColor: '#1a73e8',
+  },
+  buttonInner: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    paddingHorizontal: 12,
+  },
+  buttonInnerMuted: {
+    opacity: 1,
+  },
+  buttonInnerActive: {
+    opacity: 1,
+  },
+  buttonDropdown: {
+    width: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  buttonDropdownDanger: {
+    borderLeftColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  buttonDropdownActive: {
+    borderLeftColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  googleMeetEndCall: {
+    backgroundColor: '#ea4335',
+    borderRadius: 24,
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#ea4335',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  controlButtonMuted: {
-    backgroundColor: '#F44336',
-    borderColor: '#D32F2F',
-  },
-  controlButtonActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  endCallButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#F44336',
+  googleMeetMoreButton: {
+    backgroundColor: theme.colors.surface === '#1a1a1a' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(60, 64, 67, 0.1)',
+    borderRadius: 24,
+    width: 48,
+    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#F44336',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 3,
-    borderColor: '#D32F2F',
   },
-  secondaryControls: {
+  rightControls: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    justifyContent: 'flex-end',
   },
+  googleMeetSmallButton: {
+    backgroundColor: theme.colors.surface === '#1a1a1a' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(60, 64, 67, 0.1)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  googleMeetSmallButtonActive: {
+    backgroundColor: 'rgba(26, 115, 232, 0.2)',
+  },
+  smallButtonText: {
+    position: 'absolute',
+    top: -8,
+    right: -4,
+    backgroundColor: theme.colors.surface === '#1a1a1a' ? '#ffffff' : '#3c4043',
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    fontSize: 10,
+    fontFamily: 'Inter-Bold',
+    color: theme.colors.surface === '#1a1a1a' ? '#000000' : '#ffffff',
+    minWidth: 16,
+    textAlign: 'center',
+  },
+  smallButtonTextActive: {
+    backgroundColor: '#1a73e8',
+    color: '#ffffff',
+  },
+  secondaryControlBar: {
+    alignItems: 'center',
+  },
+  secondaryScrollContent: {
+    paddingHorizontal: 0,
+    gap: 8,
+  },
+  googleMeetChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface === '#1a1a1a' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(60, 64, 67, 0.1)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  googleMeetChipActive: {
+    backgroundColor: '#1a73e8',
+    borderColor: '#1a73e8',
+  },
+  chipText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: theme.colors.surface === '#1a1a1a' ? '#ffffff' : '#3c4043',
+  },
+  chipTextActive: {
+    color: '#ffffff',
+  },
+  // Google Meet Video Grid Styles
+  googleMeetVideoGrid: {
+    flex: 1,
+    backgroundColor: '#202124',
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 120, // Space for controls
+  },
+  speakerLayout: {
+    flex: 1,
+    flexDirection: 'column',
+  },
+  mainSpeakerContainer: {
+    flex: 1,
+    marginBottom: 8,
+  },
+  mainSpeakerTile: {
+    flex: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#3c4043',
+    position: 'relative',
+  },
+  mainSpeakerVideo: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  speakerVideoOff: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#3c4043',
+  },
+  speakerAvatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: 16,
+  },
+  speakerName: {
+    fontSize: 24,
+    fontFamily: 'Inter-Medium',
+    color: '#ffffff',
+    textAlign: 'center',
+  },
+  speakerOverlay: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  speakerInfo: {
+    flex: 1,
+  },
+  speakerNameText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  speakerControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  speakingIndicator: {
+    backgroundColor: 'rgba(26, 115, 232, 0.8)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  speakingPulse: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ffffff',
+  },
+  thumbnailStrip: {
+    flexDirection: 'row',
+    height: 90,
+    gap: 8,
+  },
+  thumbnailTile: {
+    width: 120,
+    height: 90,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#3c4043',
+    position: 'relative',
+  },
+  thumbnailVideo: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  thumbnailVideoOff: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#3c4043',
+  },
+  thumbnailAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  thumbnailOverlay: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    right: 4,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  thumbnailName: {
+    fontSize: 10,
+    fontFamily: 'Inter-Medium',
+    color: '#ffffff',
+    flex: 1,
+  },
+  thumbnailMicIndicator: {
+    backgroundColor: 'rgba(76, 175, 80, 0.8)',
+    borderRadius: 6,
+    padding: 2,
+  },
+  gridLayout: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center',
+    alignContent: 'center',
+  },
+  googleMeetVideoTile: {
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#3c4043',
+    position: 'relative',
+  },
+  singleParticipantTile: {
+    width: '100%',
+    height: '100%',
+  },
+  twoParticipantTile: {
+    width: '48%',
+    aspectRatio: 16/9,
+  },
+  fourParticipantTile: {
+    width: '48%',
+    aspectRatio: 4/3,
+  },
+  googleMeetVideo: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  googleMeetVideoOff: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#3c4043',
+  },
+  googleMeetAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  googleMeetOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  participantNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 8,
+  },
+  googleMeetParticipantName: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#ffffff',
+    flex: 1,
+  },
+  googleMeetHostBadge: {
+    backgroundColor: 'rgba(26, 115, 232, 0.8)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  hostBadgeText: {
+    fontSize: 10,
+    fontFamily: 'Inter-SemiBold',
+    color: '#ffffff',
+  },
+  googleMeetParticipantControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  googleMeetSpeakingIndicator: {
+    backgroundColor: 'rgba(26, 115, 232, 0.8)',
+    borderRadius: 8,
+    padding: 4,
+  },
+  speakingAnimation: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ffffff',
+  },
+  googleMeetMutedIndicator: {
+    backgroundColor: 'rgba(234, 67, 53, 0.8)',
+    borderRadius: 8,
+    padding: 4,
+  },
+  videoOnIndicator: {
+    backgroundColor: 'rgba(52, 168, 83, 0.8)',
+    borderRadius: 6,
+    padding: 2,
+  },
+  connectionIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 12,
+    padding: 4,
+  },
+  // Legacy secondary button styles
   secondaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1807,5 +2194,405 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#ffffff',
+  },
+  // Enhanced header styles
+  titleSection: {
+    alignItems: 'flex-start',
+  },
+  securityIndicators: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  encryptionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    gap: 2,
+  },
+  encryptionText: {
+    fontSize: 10,
+    fontFamily: 'Inter-Bold',
+    color: '#4CAF50',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginTop: 8,
+  },
+  networkIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  networkText: {
+    fontSize: 10,
+    fontFamily: 'Inter-SemiBold',
+    textTransform: 'uppercase',
+  },
+  participantCounter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  participantCountText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: theme.colors.textSecondary,
+  },
+  engagementDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  headerButton: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  headerButtonActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  // Advanced control styles
+  advancedControlsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+    flexWrap: 'wrap',
+  },
+  advancedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  advancedButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  advancedButtonText: {
+    fontSize: 11,
+    fontFamily: 'Inter-SemiBold',
+    color: theme.colors.textSecondary,
+  },
+  advancedButtonTextActive: {
+    color: '#ffffff',
+  },
+  // AI Insights Panel styles
+  aiInsightsPanel: {
+    position: 'absolute',
+    top: 80,
+    right: 20,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    width: 280,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  aiInsightsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  aiInsightsTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: theme.colors.text,
+  },
+  insightMetric: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  insightLabel: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: theme.colors.textSecondary,
+  },
+  insightValue: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: theme.colors.primary,
+  },
+  // Network Stats Panel styles
+  networkStatsPanel: {
+    position: 'absolute',
+    top: 80,
+    left: 20,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    width: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  // Live reactions overlay
+  reactionsOverlay: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -50 }, { translateY: -50 }],
+    zIndex: 1000,
+  },
+  reactionEmoji: {
+    fontSize: 48,
+    textAlign: 'center',
+  },
+  // Google Meet Main Container & Layout
+  googleMeetContainer: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  googleMeetSafeArea: {
+    flex: 1,
+  },
+  googleMeetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingTop: 20,
+  },
+  participantInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  participantAvatarContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#34a853',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  participantInitial: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#ffffff',
+  },
+  participantNameHeader: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#ffffff',
+    flex: 1,
+  },
+  expandButton: {
+    padding: 4,
+    marginLeft: 4,
+  },
+  topRightControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  topControlButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Google Meet Video Area
+  googleMeetVideoArea: {
+    flex: 1,
+    paddingHorizontal: 8,
+    paddingBottom: 120,
+  },
+  googleMeetParticipantTile: {
+    position: 'absolute',
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#3c4043',
+  },
+  mainParticipantTile: {
+    top: 0,
+    left: 8,
+    right: 8,
+    bottom: 0,
+  },
+  smallParticipantTile: {
+    position: 'absolute',
+    bottom: 120,
+    right: 16,
+    width: 120,
+    height: 160,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#3c4043',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  googleMeetParticipantVideo: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  googleMeetVideoOffContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#3c4043',
+  },
+  googleMeetParticipantAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  smallParticipantAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  mainParticipantNameContainer: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  mainParticipantName: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#ffffff',
+    backgroundColor: 'rgba(32, 33, 36, 0.8)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    flex: 1,
+    marginRight: 8,
+    textAlign: 'left',
+  },
+  participantOptionsButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(32, 33, 36, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  smallParticipantContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    gap: 4,
+  },
+  smallParticipantOptions: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  smallParticipantMoreOptions: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Google Meet Bottom Controls
+  googleMeetBottomControls: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: 40,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(32, 33, 36, 0.95)',
+  },
+  googleMeetControlsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+  },
+  googleMeetControlButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(95, 99, 104, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  googleMeetControlButtonMuted: {
+    backgroundColor: '#ea4335',
+  },
+  googleMeetEndCallButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#ea4335',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#ea4335',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  reactionButtonText: {
+    fontSize: 28,
   },
 });

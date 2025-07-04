@@ -13,7 +13,7 @@ import { useMeetings } from '@/hooks/useMeetings';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateMeetingModal } from '@/components/CreateMeetingModal';
 import CalendarPickerModal from '@/components/CalendarPickerModal';
-import { MeetingDto } from '@/services/api';
+import { MeetingDto, apiService } from '@/services/api';
 
 export default function MeetingsScreen() {
   const { theme } = useTheme();
@@ -299,6 +299,31 @@ export default function MeetingsScreen() {
     Alert.alert('Success', 'Meeting has been added to your calendar!');
     setShowCalendarModal(false);
     setSelectedMeetingForCalendar(null);
+  };
+
+  const handleCancelMeeting = async (meeting: MeetingDto) => {
+    Alert.alert(
+      'Cancel Meeting',
+      `Are you sure you want to cancel "${meeting.title}"? All participants will be notified.`,
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('Cancelling meeting:', meeting.meetingId);
+              await apiService.cancelMeeting(meeting.meetingId);
+              Alert.alert('Success', 'Meeting cancelled successfully. Notifications have been sent to all participants.');
+              fetchMeetings(); // Refresh the meetings list
+            } catch (error) {
+              console.error('Failed to cancel meeting:', error);
+              Alert.alert('Error', 'Failed to cancel meeting. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Filter meetings based on active tab and search/filter criteria
@@ -707,8 +732,11 @@ export default function MeetingsScreen() {
                     <TouchableOpacity style={styles.quickActionButton}>
                       <Share size={14} color={theme.colors.textSecondary} />
                     </TouchableOpacity>
-                    {meeting.status !== 'IN_PROGRESS' && (
-                      <TouchableOpacity style={styles.quickActionButton}>
+                    {meeting.status !== 'IN_PROGRESS' && meeting.status !== 'COMPLETED' && (
+                      <TouchableOpacity 
+                        style={styles.quickActionButton}
+                        onPress={() => handleCancelMeeting(meeting)}
+                      >
                         <Trash2 size={14} color={theme.colors.error} />
                       </TouchableOpacity>
                     )}

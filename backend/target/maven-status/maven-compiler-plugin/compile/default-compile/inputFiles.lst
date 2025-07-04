@@ -1,6 +1,7 @@
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\config\SecurityConfig.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\controller\AuthController.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\controller\MeetingController.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\controller\NotificationController.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\controller\UserController.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\ActionItemDto.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\CalendarEventDto.java
@@ -9,6 +10,7 @@ C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\Meeting
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\CreateMeetingRequest.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\JoinMeetingRequest.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\LoginRequest.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\RescheduleMeetingRequest.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\SignupRequest.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\response\ApiResponse.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\response\JwtResponse.java
@@ -17,6 +19,8 @@ C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\entity\Acti
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\entity\Contact.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\entity\Meeting.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\entity\MeetingParticipant.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\entity\Notification.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\entity\NotificationPreference.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\entity\PasswordResetToken.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\entity\User.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\InsyncBackendApplication.java
@@ -24,6 +28,8 @@ C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\repository\
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\repository\ContactRepository.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\repository\MeetingParticipantRepository.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\repository\MeetingRepository.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\repository\NotificationPreferenceRepository.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\repository\NotificationRepository.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\repository\PasswordResetTokenRepository.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\repository\UserRepository.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\security\JwtAuthenticationEntryPoint.java
@@ -33,4 +39,6 @@ C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\security\Us
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\service\CalendarService.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\service\EmailService.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\service\MeetingService.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\service\NotificationService.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\service\SmsService.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\service\UserDetailsServiceImpl.java

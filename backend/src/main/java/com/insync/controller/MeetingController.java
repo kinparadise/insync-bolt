@@ -13,6 +13,7 @@ import com.insync.dto.CalendarEventDto;
 import com.insync.dto.MeetingDto;
 import com.insync.dto.request.CreateMeetingRequest;
 import com.insync.dto.request.JoinMeetingRequest;
+import com.insync.dto.request.RescheduleMeetingRequest;
 import com.insync.dto.response.ApiResponse;
 import com.insync.service.CalendarService;
 import com.insync.service.MeetingService;
@@ -112,20 +113,33 @@ public class MeetingController {
         }
     }
 
-    // Legacy endpoints for backward compatibility
-    @PostMapping("/{id}/join")
-    public ResponseEntity<?> joinMeeting(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(ApiResponse.success("Use /meetings/{meetingId}/join with the meeting ID instead"));
+    /**
+     * Cancel a meeting and send notifications
+     */
+    @DeleteMapping("/{meetingId}")
+    public ResponseEntity<?> cancelMeeting(@PathVariable String meetingId, Authentication authentication) {
+        try {
+            MeetingDto meeting = meetingService.cancelMeeting(meetingId, authentication.getName());
+            return ResponseEntity.ok(ApiResponse.success("Meeting cancelled successfully", meeting));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Failed to cancel meeting: " + e.getMessage()));
+        }
     }
 
-    @PostMapping("/{id}/leave")
-    public ResponseEntity<?> leaveMeeting(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(ApiResponse.success("Left meeting successfully"));
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getMeetingById(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(ApiResponse.success("Use /meetings/{meetingId} with the meeting ID instead"));
+    /**
+     * Reschedule a meeting and send notifications
+     */
+    @PutMapping("/{meetingId}/reschedule")
+    public ResponseEntity<?> rescheduleMeeting(@PathVariable String meetingId,
+                                             @RequestBody RescheduleMeetingRequest request,
+                                             Authentication authentication) {
+        try {
+            MeetingDto meeting = meetingService.rescheduleMeeting(meetingId, 
+                request.getNewStartTime(), request.getNewEndTime(), authentication.getName());
+            return ResponseEntity.ok(ApiResponse.success("Meeting rescheduled successfully", meeting));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Failed to reschedule meeting: " + e.getMessage()));
+        }
     }
 
     // Calendar Integration Endpoints

@@ -28,6 +28,9 @@ public class MeetingService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     /**
      * Creates an instant meeting for immediate use
      */
@@ -52,6 +55,10 @@ public class MeetingService {
         meeting.setMeetingId(meetingId);
         
         Meeting savedMeeting = meetingRepository.save(meeting);
+        
+        // Schedule notifications for this instant meeting
+        notificationService.scheduleMeetingNotifications(savedMeeting);
+        
         return convertToDto(savedMeeting);
     }
 
@@ -79,6 +86,10 @@ public class MeetingService {
         meeting.setMeetingId(meetingId);
         
         Meeting savedMeeting = meetingRepository.save(meeting);
+        
+        // Schedule notifications for this meeting
+        notificationService.scheduleMeetingNotifications(savedMeeting);
+        
         return convertToDto(savedMeeting);
     }
 
@@ -160,6 +171,63 @@ public class MeetingService {
         }
 
         Meeting savedMeeting = meetingRepository.save(meeting);
+        return convertToDto(savedMeeting);
+    }
+
+    /**
+     * Cancels a meeting and sends notifications
+     */
+    public MeetingDto cancelMeeting(String meetingId, String userEmail) {
+        Meeting meeting = meetingRepository.findByMeetingId(meetingId)
+                .orElseThrow(() -> new RuntimeException("Meeting not found with ID: " + meetingId));
+
+        // Check if user is authorized to cancel (host only)
+        if (!meeting.getHost().getEmail().equals(userEmail)) {
+            throw new RuntimeException("Only the meeting host can cancel the meeting");
+        }
+
+        // Cancel all pending notifications for this meeting
+        notificationService.cancelMeetingNotifications(meeting);
+
+        // Update meeting status
+        meeting.setStatus(Meeting.MeetingStatus.CANCELLED);
+        Meeting savedMeeting = meetingRepository.save(meeting);
+
+        // Send immediate cancellation notifications
+        notificationService.sendImmediateMeetingNotification(savedMeeting, 
+            com.insync.entity.Notification.NotificationType.MEETING_CANCELLED);
+
+        return convertToDto(savedMeeting);
+    }
+
+    /**
+     * Reschedules a meeting and sends notifications
+     */
+    public MeetingDto rescheduleMeeting(String meetingId, LocalDateTime newStartTime, 
+                                       LocalDateTime newEndTime, String userEmail) {
+        Meeting meeting = meetingRepository.findByMeetingId(meetingId)
+                .orElseThrow(() -> new RuntimeException("Meeting not found with ID: " + meetingId));
+
+        // Check if user is authorized to reschedule (host only)
+        if (!meeting.getHost().getEmail().equals(userEmail)) {
+            throw new RuntimeException("Only the meeting host can reschedule the meeting");
+        }
+
+        // Cancel all pending notifications for this meeting
+        notificationService.cancelMeetingNotifications(meeting);
+
+        // Update meeting times
+        meeting.setStartTime(newStartTime);
+        meeting.setEndTime(newEndTime);
+        Meeting savedMeeting = meetingRepository.save(meeting);
+
+        // Schedule new notifications for the rescheduled meeting
+        notificationService.scheduleMeetingNotifications(savedMeeting);
+
+        // Send immediate rescheduling notifications
+        notificationService.sendImmediateMeetingNotification(savedMeeting, 
+            com.insync.entity.Notification.NotificationType.MEETING_RESCHEDULED);
+
         return convertToDto(savedMeeting);
     }
 

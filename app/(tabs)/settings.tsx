@@ -177,10 +177,9 @@ export default function SettingsScreen() {
         {
           icon: Bell,
           title: 'Notifications',
-          subtitle: 'Push notifications for calls and meetings',
-          hasSwitch: true,
-          switchValue: notifications,
-          onSwitchChange: setNotifications,
+          subtitle: 'Configure email, SMS, and push notifications',
+          hasArrow: true,
+          onPress: () => router.push('/screens/notification-preferences' as any),
         },
         {
           icon: Shield,

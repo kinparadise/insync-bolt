@@ -48,6 +48,22 @@ spring:
           starttls:
             enable: true
 
+# SMS Configuration (using a generic provider like Twilio)
+sms:
+  provider:
+    api:
+      key: ${SMS_API_KEY:your-sms-api-key}
+      url: ${SMS_API_URL:https://api.twilio.com/2010-04-01/Accounts/YOUR_ACCOUNT_SID/Messages.json}
+    from:
+      number: ${SMS_FROM_NUMBER:+1234567890}
+
+# Notification Configuration
+notifications:
+  enabled: true
+  retry:
+    max-attempts: 3
+    delay-minutes: 5
+
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890}
@@ -66,4 +82,3 @@ logging:
     com.insync: DEBUG
     org.springframework.security: DEBUG
     org.hibernate.SQL: DEBUG
-          
