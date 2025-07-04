@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Switch, Alert, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, User, Mail, Lock, Phone as PhoneIcon, Facebook, Globe } from 'lucide-react-native';
 import { useState } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -11,33 +11,35 @@ export default function SignUpScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const { signup } = useAuth();
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [phone, setPhone] = useState('');
-  const [department, setDepartment] = useState('');
   const [enableFaceID, setEnableFaceID] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignUp = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
-
     if (password.length < 6) {
       Alert.alert('Error', 'Password must be at least 6 characters long');
       return;
     }
-
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
     setIsLoading(true);
     try {
       await signup({
-        name: name.trim(),
+        name: firstName.trim() + ' ' + lastName.trim(),
         email: email.trim(),
         password,
         phone: phone.trim() || undefined,
-        department: department.trim() || undefined,
       });
       router.replace('/(tabs)');
     } catch (error) {
@@ -67,73 +69,104 @@ export default function SignUpScreen() {
           <Text style={styles.title}>Create Account</Text>
         </View>
 
-        <View style={styles.form}>
+        <ScrollView style={styles.form} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Name *</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="Enter your name"
-              placeholderTextColor={theme.colors.textTertiary}
-              editable={!isLoading}
-            />
+            <Text style={styles.label}>First Name *</Text>
+            <View style={styles.inputRow}>
+              <User color={theme.colors.textSecondary} size={20} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="Enter your first name"
+                placeholderTextColor={theme.colors.textTertiary}
+                editable={!isLoading}
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Last Name *</Text>
+            <View style={styles.inputRow}>
+              <User color={theme.colors.textSecondary} size={20} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={lastName}
+                onChangeText={setLastName}
+                placeholder="Enter your last name"
+                placeholderTextColor={theme.colors.textTertiary}
+                editable={!isLoading}
+              />
+            </View>
           </View>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Email *</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Enter your email"
-              placeholderTextColor={theme.colors.textTertiary}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!isLoading}
-            />
+            <View style={styles.inputRow}>
+              <Mail color={theme.colors.textSecondary} size={20} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Enter your email"
+                placeholderTextColor={theme.colors.textTertiary}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!isLoading}
+              />
+            </View>
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password *</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Enter your password (min 6 characters)"
-              placeholderTextColor={theme.colors.textTertiary}
-              secureTextEntry
-              editable={!isLoading}
-            />
+            <Text style={styles.label}> Create Password *</Text>
+            <View style={styles.inputRow}>
+              <Lock color={theme.colors.textSecondary} size={20} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Enter your password (min 6 characters)"
+                placeholderTextColor={theme.colors.textTertiary}
+                secureTextEntry
+                editable={!isLoading}
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Confirm Password *</Text>
+            <View style={styles.inputRow}>
+              <Lock color={theme.colors.textSecondary} size={20} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="Re-enter your password"
+                placeholderTextColor={theme.colors.textTertiary}
+                secureTextEntry
+                editable={!isLoading}
+              />
+            </View>
           </View>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Phone</Text>
-            <TextInput
-              style={styles.input}
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="Enter your phone number"
-              placeholderTextColor={theme.colors.textTertiary}
-              keyboardType="phone-pad"
-              editable={!isLoading}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Department</Text>
-            <TextInput
-              style={styles.input}
-              value={department}
-              onChangeText={setDepartment}
-              placeholder="Enter your department"
-              placeholderTextColor={theme.colors.textTertiary}
-              editable={!isLoading}
-            />
+            <View style={styles.inputRow}>
+              <PhoneIcon color={theme.colors.textSecondary} size={20} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="Enter your phone number"
+                placeholderTextColor={theme.colors.textTertiary}
+                keyboardType="phone-pad"
+                editable={!isLoading}
+              />
+            </View>
           </View>
 
           <View style={styles.faceIdContainer}>
-            <Text style={styles.faceIdLabel}>Enable Face ID</Text>
+            <Text style={styles.faceIdLabel}>Enable Biometrics</Text>
             <Switch
               value={enableFaceID}
               onValueChange={setEnableFaceID}
@@ -160,7 +193,10 @@ export default function SignUpScreen() {
             onPress={handleGoogleSignUp}
             disabled={isLoading}
           >
-            <Text style={styles.socialButtonText}>Continue with Google</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <Globe color={theme.colors.textSecondary} size={20} style={{ marginRight: 8 }} />
+              <Text style={styles.socialButtonText}>Continue with Google</Text>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -168,7 +204,10 @@ export default function SignUpScreen() {
             onPress={handleFacebookSignUp}
             disabled={isLoading}
           >
-            <Text style={styles.socialButtonText}>Continue with Facebook</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <Facebook color={theme.colors.textSecondary} size={20} style={{ marginRight: 8 }} />
+              <Text style={styles.socialButtonText}>Continue with Facebook</Text>
+            </View>
           </TouchableOpacity>
 
           <View style={styles.loginContainer}>
@@ -177,7 +216,7 @@ export default function SignUpScreen() {
               <Text style={styles.loginLink}>Log In</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </ThemedLinearGradient>
   );
@@ -218,16 +257,28 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.text,
     marginBottom: 8,
   },
-  input: {
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: theme.colors.card,
     borderRadius: 12,
-    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 0,
+  },
+  inputIcon: {
+    marginRight: 8,
+  },
+  input: {
+    flex: 1,
+    paddingHorizontal: 4,
     paddingVertical: 16,
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: theme.colors.text,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
   },
   faceIdContainer: {
     flexDirection: 'row',

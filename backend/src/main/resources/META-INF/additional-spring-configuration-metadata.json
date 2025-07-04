@@ -1,0 +1,92 @@
+{"properties": [
+  {
+    "name": "jwt.secret",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt.secret'"
+  },
+  {
+    "name": "jwt.expiration",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt.expiration'"
+  },
+  {
+    "name": "cors.allowed-origins",
+    "type": "java.lang.String",
+    "description": "A description for 'cors.allowed-origins'"
+  },
+  {
+    "name": "cors.allow-credentials",
+    "type": "java.lang.String",
+    "description": "A description for 'cors.allow-credentials'"
+  },
+  {
+    "name": "cors.allowed-headers",
+    "type": "java.lang.String",
+    "description": "A description for 'cors.allowed-headers'"
+  },
+  {
+    "name": "cors.allowed-methods",
+    "type": "java.lang.String",
+    "description": "A description for 'cors.allowed-methods'"
+  },
+  {
+    "name": "mail.properties.mail.smtp.starttls.enable",
+    "type": "java.lang.String",
+    "description": "A description for 'mail.properties.mail.smtp.starttls.enable'"
+  },
+  {
+    "name": "mail.properties.mail.smtp.auth",
+    "type": "java.lang.String",
+    "description": "A description for 'mail.properties.mail.smtp.auth'"
+  },
+  {
+    "name": "mail.port",
+    "type": "java.lang.String",
+    "description": "A description for 'mail.port'"
+  },
+  {
+    "name": "mail.username",
+    "type": "java.lang.String",
+    "description": "A description for 'mail.username'"
+  },
+  {
+    "name": "mail.host",
+    "type": "java.lang.String",
+    "description": "A description for 'mail.host'"
+  },
+  {
+    "name": "mail.password",
+    "type": "java.lang.String",
+    "description": "A description for 'mail.password'"
+  },
+  {
+    "name": "logging.mail.host",
+    "type": "java.lang.String",
+    "description": "A description for 'logging.mail.host'"
+  },
+  {
+    "name": "logging.mail.port",
+    "type": "java.lang.String",
+    "description": "A description for 'logging.mail.port'"
+  },
+  {
+    "name": "logging.mail.username",
+    "type": "java.lang.String",
+    "description": "A description for 'logging.mail.username'"
+  },
+  {
+    "name": "logging.mail.properties.mail.smtp.auth",
+    "type": "java.lang.String",
+    "description": "A description for 'logging.mail.properties.mail.smtp.auth'"
+  },
+  {
+    "name": "logging.mail.properties.mail.smtp.starttls.enable",
+    "type": "java.lang.String",
+    "description": "A description for 'logging.mail.properties.mail.smtp.starttls.enable'"
+  },
+  {
+    "name": "logging.mail.password",
+    "type": "java.lang.String",
+    "description": "A description for 'logging.mail.password'"
+  }
+]}

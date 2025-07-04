@@ -8,18 +8,18 @@ spring:
     name: insync-backend
   
   datasource:
-    url: jdbc:postgresql://localhost:5432/insync_db
-    username: ${DB_USERNAME:insync_user}
-    password: ${DB_PASSWORD:insync_password}
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
   
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: false
+      ddl-auto: create-drop
+    show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        dialect: org.hibernate.dialect.H2Dialect
         format_sql: true
   
   security:
@@ -34,6 +34,18 @@ spring:
             client-id: ${FACEBOOK_CLIENT_ID:your-facebook-client-id}
             client-secret: ${FACEBOOK_CLIENT_SECRET:your-facebook-client-secret}
             scope: email, public_profile
+  
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:your-email@gmail.com}
+    password: ${MAIL_PASSWORD:your-app-password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 # JWT Configuration
 jwt:
@@ -53,3 +65,4 @@ logging:
     com.insync: DEBUG
     org.springframework.security: DEBUG
     org.hibernate.SQL: DEBUG
+          

@@ -5,7 +5,7 @@ import { Mic, Video, MicOff, VideoOff, Settings, Users, ArrowLeft } from 'lucide
 import { useState } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function JoinScreen() {
   const router = useRouter();
@@ -13,7 +13,7 @@ export default function JoinScreen() {
   const { theme } = useTheme();
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
-  const { user } = useUser();
+  const { user } = useAuth();
 
   const meetingInfo = {
     title: 'Team Standup Meeting',

@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'http://192.168.146.1:8080/api';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -161,6 +161,13 @@ class ApiService {
     });
     this.clearToken();
     return response;
+  }
+
+  async forgotPassword(email: string): Promise<ApiResponse> {
+    return this.request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
   }
 
   // User Management
