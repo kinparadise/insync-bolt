@@ -67,7 +67,6 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> 
                 auth.requestMatchers("/auth/**").permitAll()
                     .requestMatchers("/public/**").permitAll()
-                    .requestMatchers("/api/auth/forgot-password").permitAll()
                     .anyRequest().authenticated()
             );
 
@@ -81,6 +80,12 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://10.232.200.20:8082",
+            "exp://10.232.200.20:8082",
+            "http://localhost:8082",
+            "http://localhost:3000"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);

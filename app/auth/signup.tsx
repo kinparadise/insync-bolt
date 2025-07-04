@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function SignUpScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { signup } = useAuth();
+  const { createAccount } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -35,13 +35,33 @@ export default function SignUpScreen() {
     }
     setIsLoading(true);
     try {
-      await signup({
+      const result = await createAccount({
         name: firstName.trim() + ' ' + lastName.trim(),
         email: email.trim(),
         password,
         phone: phone.trim() || undefined,
       });
-      router.replace('/(tabs)');
+      
+      // Show success message
+      Alert.alert(
+        'Account Created Successfully!', 
+        result.message,
+        [
+          {
+            text: 'Login Now',
+            onPress: () => {
+              // Navigate to login with pre-filled email
+              router.push({
+                pathname: '/auth/login',
+                params: { 
+                  email: email.trim(),
+                  name: result.user.name 
+                }
+              });
+            }
+          }
+        ]
+      );
     } catch (error) {
       Alert.alert('Sign Up Failed', error instanceof Error ? error.message : 'An error occurred');
     } finally {

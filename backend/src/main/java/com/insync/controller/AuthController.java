@@ -12,6 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -84,7 +85,14 @@ public class AuthController {
 
         userRepository.save(user);
 
-        return ResponseEntity.ok(ApiResponse.success("User registered successfully!"));
+        // Authenticate the new user
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(signUpRequest.getEmail(), signUpRequest.getPassword())
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String jwt = jwtUtils.generateJwtToken(authentication);
+
+        return ResponseEntity.ok(new JwtResponse(jwt, new UserDto(user)));
     }
 
     @PostMapping("/signout")
@@ -140,5 +148,21 @@ public class AuthController {
         resetToken.setUsed(true);
         passwordResetTokenRepository.save(resetToken);
         return ResponseEntity.ok(ApiResponse.success("Password has been reset successfully!"));
+    }
+
+    @GetMapping("/test")
+    public ResponseEntity<?> testAuth() {
+        return ResponseEntity.ok(ApiResponse.success("Server is reachable", null));
+    }
+
+    @GetMapping("/verify")
+    public ResponseEntity<?> verifyToken(Authentication authentication) {
+        if (authentication != null && authentication.isAuthenticated()) {
+            return ResponseEntity.ok(ApiResponse.success("Token is valid", Map.of(
+                "username", authentication.getName(),
+                "authorities", authentication.getAuthorities()
+            )));
+        }
+        return ResponseEntity.status(401).body(ApiResponse.error("Invalid token"));
     }
 }

@@ -1,8 +1,8 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Facebook, Globe, Mail, Lock, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,9 +11,26 @@ export default function LoginScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const { login } = useAuth();
+  const params = useLocalSearchParams();
+  const passwordInputRef = useRef<TextInput>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState('');
+
+  // Pre-fill email and show welcome message if coming from signup
+  useEffect(() => {
+    if (params.email) {
+      setEmail(params.email as string);
+      // Focus password field after a short delay
+      setTimeout(() => {
+        passwordInputRef.current?.focus();
+      }, 500);
+    }
+    if (params.name) {
+      setWelcomeMessage(`Welcome, ${params.name}! Please enter your password to continue.`);
+    }
+  }, [params]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -52,6 +69,12 @@ export default function LoginScreen() {
           <Text style={styles.title}>Log In</Text>
         </View>
 
+        {welcomeMessage ? (
+          <View style={styles.welcomeContainer}>
+            <Text style={styles.welcomeMessage}>{welcomeMessage}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.form}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Email</Text>
@@ -75,6 +98,7 @@ export default function LoginScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.card, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, paddingHorizontal: 12 }}>
               <Lock color={theme.colors.textSecondary} size={20} style={{ marginRight: 8 }} />
               <TextInput
+                ref={passwordInputRef}
                 style={[styles.input, { flex: 1, borderWidth: 0, backgroundColor: 'transparent', paddingHorizontal: 4 }]}
                 value={password}
                 onChangeText={setPassword}
@@ -156,6 +180,21 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 24,
     fontFamily: 'Inter-Bold',
     color: theme.colors.text,
+  },
+  welcomeContainer: {
+    marginHorizontal: 24,
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: theme.colors.primary + '15',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + '30',
+  },
+  welcomeMessage: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: theme.colors.primary,
+    textAlign: 'center',
   },
   form: {
     flex: 1,

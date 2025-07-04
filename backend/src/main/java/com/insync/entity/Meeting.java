@@ -8,6 +8,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +45,7 @@ public class Meeting {
     private MeetingType type = MeetingType.GENERAL;
 
     @Size(max = 100)
+    @Column(unique = true)
     private String meetingId; // Unique meeting room ID
 
     @Size(max = 500)
@@ -74,8 +76,23 @@ public class Meeting {
         this.meetingId = generateMeetingId();
     }
 
+    /**
+     * Generates a unique meeting ID that users can use to join the meeting.
+     * Format: XXX-XXX-XXX where X is a digit or uppercase letter (excluding 0, O, I, L for clarity)
+     */
     private String generateMeetingId() {
-        return "meeting-" + System.currentTimeMillis();
+        SecureRandom random = new SecureRandom();
+        String chars = "123456789ABCDEFGHJKMNPQRSTUVWXYZ"; // Excludes 0, O, I, L for clarity
+        StringBuilder idBuilder = new StringBuilder();
+        
+        for (int i = 0; i < 9; i++) {
+            if (i == 3 || i == 6) {
+                idBuilder.append("-");
+            }
+            idBuilder.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        
+        return idBuilder.toString();
     }
 
     // Getters and Setters

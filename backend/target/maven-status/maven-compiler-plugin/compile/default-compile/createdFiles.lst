@@ -26,6 +26,7 @@ com\insync\entity\MeetingParticipant.class
 com\insync\dto\request\LoginRequest.class
 com\insync\InsyncBackendApplication.class
 com\insync\repository\PasswordResetTokenRepository.class
+com\insync\controller\MeetingController.class
 com\insync\security\JwtAuthenticationEntryPoint.class
 com\insync\security\JwtAuthenticationFilter.class
 com\insync\entity\MeetingParticipant$ParticipantStatus.class

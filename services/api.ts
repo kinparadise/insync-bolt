@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://192.168.146.1:8080/api';
+const API_BASE_URL = 'http://10.232.200.20:8080/api';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -105,9 +105,9 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${API_BASE_URL}${endpoint}`;
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string>),
     };
 
     if (this.token) {
@@ -115,6 +115,9 @@ class ApiService {
     }
 
     try {
+      console.log(`Making API request to: ${url}`);
+      console.log(`With auth header: ${!!this.token}`);
+      
       const response = await fetch(url, {
         ...options,
         headers,
@@ -123,36 +126,150 @@ class ApiService {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Request failed');
+        // Special handling for authentication errors
+        if (response.status === 401 || response.status === 403) {
+          console.error('Authentication failed for:', url);
+          console.error('Response status:', response.status);
+          console.error('Token was:', this.token ? 'present' : 'missing');
+          
+          // Get more details about the error
+          try {
+            console.error('Error response:', data);
+          } catch (e) {
+            console.error('Could not parse error response');
+          }
+          
+          // Clear token if it's invalid
+          this.clearToken();
+          
+          // Create a more specific error message
+          const errorMsg = data.message || 'Authentication failed - please log in again';
+          throw new Error(errorMsg);
+        }
+        throw new Error(data.message || `Request failed with status ${response.status}`);
       }
 
       return data;
     } catch (error) {
-      console.error('API Request failed:', error);
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        console.error('Network error: Could not reach backend at', url);
+      } else {
+        console.error('API Request failed:', error);
+      }
       throw error;
     }
   }
 
   // Authentication
   async login(credentials: LoginRequest): Promise<JwtResponse> {
-    const response = await this.request<JwtResponse>('/auth/signin', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
-    
-    if (response.data) {
-      this.setToken(response.data.token);
-      return response.data;
+    try {
+      const url = `${API_BASE_URL}/auth/signin`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(credentials),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      // Backend returns JwtResponse directly, not wrapped in ApiResponse
+      if (data.token && data.user) {
+        this.setToken(data.token);
+        return data;
+      }
+      
+      throw new Error('Invalid response format');
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        console.error('Network error: Could not reach backend at', `${API_BASE_URL}/auth/signin`);
+      } else {
+        console.error('Login failed:', error);
+      }
+      throw error;
     }
-    
-    throw new Error('Login failed');
   }
 
-  async signup(userData: SignupRequest): Promise<ApiResponse> {
-    return this.request('/auth/signup', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    });
+  async signup(userData: SignupRequest): Promise<JwtResponse> {
+    try {
+      const url = `${API_BASE_URL}/auth/signup`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Signup failed');
+      }
+
+      // Backend returns JwtResponse directly, not wrapped in ApiResponse
+      if (data.token && data.user) {
+        this.setToken(data.token);
+        return data;
+      }
+      
+      throw new Error('Invalid response format');
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        console.error('Network error: Could not reach backend at', `${API_BASE_URL}/auth/signup`);
+      } else {
+        console.error('Signup failed:', error);
+      }
+      throw error;
+    }
+  }
+
+  async createAccount(userData: SignupRequest): Promise<{ success: boolean; message: string; user: UserDto }> {
+    try {
+      const url = `${API_BASE_URL}/auth/signup`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Account creation failed');
+      }
+
+      // Backend returns JwtResponse directly, but we don't set the token for createAccount
+      if (data.token && data.user) {
+        return {
+          success: true,
+          message: 'Account created successfully! Please log in with your credentials.',
+          user: data.user
+        };
+      }
+      
+      throw new Error('Invalid response format');
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        console.error('Network error: Could not reach backend at', `${API_BASE_URL}/auth/signup`);
+      } else {
+        console.error('Account creation failed:', error);
+      }
+      throw error;
+    }
   }
 
   async logout(): Promise<ApiResponse> {
@@ -240,6 +357,10 @@ class ApiService {
   }
 
   async joinMeeting(id: number): Promise<ApiResponse> {
+    console.log('Joining meeting ID:', id, 'Token available:', !!this.token);
+    if (!this.token) {
+      throw new Error('Authentication token is required to join meetings');
+    }
     return this.request(`/meetings/${id}/join`, {
       method: 'POST',
     });
@@ -288,6 +409,95 @@ class ApiService {
     return this.request(`/action-items/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // Token management utilities
+  getToken(): string | null {
+    return this.token;
+  }
+
+  async testConnection(): Promise<boolean> {
+    try {
+      await this.getCurrentUser();
+      return true;
+    } catch (error) {
+      console.error('Token test failed:', error);
+      return false;
+    }
+  }
+
+  // Authentication diagnostics
+  async diagnoseAuthentication(): Promise<{
+    hasToken: boolean;
+    tokenLength?: number;
+    tokenPrefix?: string;
+    canReachServer: boolean;
+    isTokenValid: boolean;
+    userInfo?: UserDto;
+    error?: string;
+  }> {
+    const diagnosis = {
+      hasToken: !!this.token,
+      tokenLength: this.token?.length,
+      tokenPrefix: this.token?.substring(0, 20) + '...',
+      canReachServer: false,
+      isTokenValid: false,
+      userInfo: undefined as UserDto | undefined,
+      error: undefined as string | undefined,
+    };
+
+    console.log('=== Authentication Diagnosis ===');
+    console.log('Token available:', diagnosis.hasToken);
+    console.log('Token length:', diagnosis.tokenLength);
+    console.log('Token prefix:', diagnosis.tokenPrefix);
+
+    try {
+      // Test server connectivity
+      const response = await fetch(`${API_BASE_URL}/auth/test`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      diagnosis.canReachServer = response.status === 200;
+      console.log('Server reachable:', diagnosis.canReachServer);
+    } catch (error) {
+      console.log('Server connectivity error:', error);
+      diagnosis.error = 'Cannot reach server';
+    }
+
+    if (diagnosis.hasToken) {
+      try {
+        // Test token validity using verification endpoint
+        const tokenResponse = await fetch(`${API_BASE_URL}/auth/verify`, {
+          method: 'GET',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.token}`
+          },
+        });
+        
+        if (tokenResponse.status === 200) {
+          diagnosis.isTokenValid = true;
+          console.log('Token is valid via auth/verify endpoint');
+          
+          // Also test with user info
+          const userInfo = await this.getCurrentUser();
+          diagnosis.userInfo = userInfo;
+          console.log('Token valid, user:', userInfo.name, userInfo.email);
+        } else {
+          diagnosis.isTokenValid = false;
+          const errorData = await tokenResponse.json();
+          diagnosis.error = errorData.message || 'Token verification failed';
+          console.log('Token verification failed:', diagnosis.error);
+        }
+      } catch (error) {
+        diagnosis.isTokenValid = false;
+        diagnosis.error = error instanceof Error ? error.message : 'Token validation failed';
+        console.log('Token validation error:', diagnosis.error);
+      }
+    }
+
+    console.log('=== End Diagnosis ===');
+    return diagnosis;
   }
 }
 

@@ -10,8 +10,24 @@ import { SharedNotesComponent } from '@/components/SharedNotesComponent';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { AnimatedBackgroundCircle } from '@/components/AnimatedBackgroundCircle';
 import { useAuth } from '@/contexts/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+// Function to get time-based greeting
+const getTimeBasedGreeting = () => {
+  const hour = new Date().getHours();
+  
+  if (hour >= 5 && hour < 12) {
+    return 'Good morning';
+  } else if (hour >= 12 && hour < 17) {
+    return 'Good afternoon';
+  } else if (hour >= 17 && hour < 22) {
+    return 'Good evening';
+  } else {
+    return 'Good night';
+  }
+};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -21,10 +37,13 @@ export default function HomeScreen() {
   const usableHeight = deviceHeight - insets.top - insets.bottom;
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [showSharedNotes, setShowSharedNotes] = useState(false);
+  const [hasNavigated, setHasNavigated] = useState(false);
+  const greetingFadeAnim = useRef(new Animated.Value(1)).current;
   const { user } = useAuth();
 
   // Mock user and stats
   const userName = user?.name || 'User';
+  const firstName = userName.split(' ')[0]; // Extract first name only
   const stats = [
     {
       label: 'Meetings this week',
@@ -56,6 +75,42 @@ export default function HomeScreen() {
   ];
   const [bannerIndex, setBannerIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  // Check for user activity/navigation to show professional header
+  useEffect(() => {
+    const checkNavigationHistory = async () => {
+      try {
+        const hasNavigatedBefore = await AsyncStorage.getItem('hasNavigated');
+        if (hasNavigatedBefore === 'true') {
+          setHasNavigated(true);
+        } else {
+          // For first-time users, switch to professional mode after 30 seconds
+          const timer = setTimeout(() => {
+            // Fade out current greeting, change mode, then fade in
+            Animated.timing(greetingFadeAnim, {
+              toValue: 0,
+              duration: 300,
+              useNativeDriver: true,
+            }).start(() => {
+              setHasNavigated(true);
+              AsyncStorage.setItem('hasNavigated', 'true');
+              Animated.timing(greetingFadeAnim, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+              }).start();
+            });
+          }, 30000);
+          
+          return () => clearTimeout(timer);
+        }
+      } catch (error) {
+        console.log('Error checking navigation history:', error);
+      }
+    };
+    
+    checkNavigationHistory();
+  }, []);
 
   // Auto-rotate banner every 5 seconds
   useEffect(() => {
@@ -121,15 +176,21 @@ export default function HomeScreen() {
   ];
 
   const handleNewCall = () => {
+    setHasNavigated(true);
+    AsyncStorage.setItem('hasNavigated', 'true');
     const newCallId = 'instant-' + Date.now();
     router.push(`/call/${newCallId}`);
   };
 
   const handleJoinCall = (callId: string) => {
+    setHasNavigated(true);
+    AsyncStorage.setItem('hasNavigated', 'true');
     router.push(`/call/${callId}`);
   };
 
   const handleNavigateToTab = (tabName: string) => {
+    setHasNavigated(true);
+    AsyncStorage.setItem('hasNavigated', 'true');
     // Map tab names to valid route strings
     const tabRoutes: Record<string, string> = {
       classroom: '/screens/classroom',
@@ -178,13 +239,24 @@ export default function HomeScreen() {
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
           {/* Greeting and Avatar */}
           <View style={styles.greetingRow}>
-            <View>
-              <Text style={styles.greeting}>Good morning, {userName} <Text style={{ fontSize: 22 }}>👋</Text></Text>
-            </View>
+            <Animated.View style={{ opacity: greetingFadeAnim }}>
+              {hasNavigated ? (
+                <View>
+                  <Text style={styles.professionalGreeting}>Welcome back</Text>
+                  <Text style={styles.professionalSubtext}>Ready to connect and collaborate</Text>
+                </View>
+              ) : (
+                <Text style={styles.greeting}>{getTimeBasedGreeting()}, {firstName} <Text style={{ fontSize: 22 }}>👋</Text></Text>
+              )}
+            </Animated.View>
             <TouchableOpacity 
               style={styles.avatarContainer} 
               accessibilityLabel="Profile avatar"
-              onPress={() => router.push('/auth/profile')}
+              onPress={() => {
+                setHasNavigated(true);
+                AsyncStorage.setItem('hasNavigated', 'true');
+                router.push('/auth/profile');
+              }}
             >
               {user?.avatar ? (
                 <Image source={{ uri: user.avatar }} style={styles.avatarContainer} />
@@ -249,7 +321,11 @@ export default function HomeScreen() {
                 style={[styles.toolCard, pressedTool === 'whiteboard' && styles.toolCardPressed]}
                 onPressIn={() => setPressedTool('whiteboard')}
                 onPressOut={() => setPressedTool(null)}
-                onPress={() => setShowWhiteboard(true)}
+                onPress={() => {
+                  setHasNavigated(true);
+                  AsyncStorage.setItem('hasNavigated', 'true');
+                  setShowWhiteboard(true);
+                }}
                 accessibilityLabel="Open Whiteboard"
                 activeOpacity={0.85}
               >
@@ -260,7 +336,11 @@ export default function HomeScreen() {
                 style={[styles.toolCard, pressedTool === 'notes' && styles.toolCardPressed]}
                 onPressIn={() => setPressedTool('notes')}
                 onPressOut={() => setPressedTool(null)}
-                onPress={() => setShowSharedNotes(true)}
+                onPress={() => {
+                  setHasNavigated(true);
+                  AsyncStorage.setItem('hasNavigated', 'true');
+                  setShowSharedNotes(true);
+                }}
                 accessibilityLabel="Open Shared Notes"
                 activeOpacity={0.85}
               >
@@ -378,6 +458,17 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 28,
     fontFamily: 'Inter-Bold',
     color: theme.colors.text,
+  },
+  professionalGreeting: {
+    fontSize: 24,
+    fontFamily: 'Inter-SemiBold',
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  professionalSubtext: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: theme.colors.textSecondary,
   },
   avatarContainer: {
     width: 48,

@@ -1,7 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Modal, FlatList, Alert } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Modal, FlatList, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Mic, Speaker, Camera, ChevronRight, Bell, Shield, CircleHelp as HelpCircle, LogOut, Sun, Moon, Monitor } from 'lucide-react-native';
+import { ArrowLeft, Mic, Speaker, Camera, ChevronRight, Bell, Shield, CircleHelp as HelpCircle, LogOut, Sun, Moon, Monitor, User, Edit } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme, ThemeMode } from '@/contexts/ThemeContext';
@@ -109,6 +110,19 @@ export default function SettingsScreen() {
 
   const settingsGroups = [
     {
+      title: 'USER PROFILE',
+      items: [
+        {
+          icon: null, // We'll render a custom avatar instead
+          title: user?.name || 'User Name',
+          subtitle: user?.email || 'user@example.com',
+          hasArrow: true,
+          isProfile: true,
+          onPress: () => router.push('/auth/profile'),
+        },
+      ],
+    },
+    {
       title: 'APPEARANCE',
       items: [
         {
@@ -200,25 +214,7 @@ export default function SettingsScreen() {
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* User Info Section */}
-          {user && (
-            <View style={styles.userSection}>
-              <View style={styles.userInfo}>
-                <Text style={styles.userName}>{user.name}</Text>
-                <Text style={styles.userEmail}>{user.email}</Text>
-                {user.department && (
-                  <Text style={styles.userDepartment}>{user.department}</Text>
-                )}
-              </View>
-              <TouchableOpacity 
-                style={styles.editProfileButton}
-                onPress={() => router.push('/auth/profile')}
-              >
-                <Text style={styles.editProfileText}>Edit Profile</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
+          
           {settingsGroups.map((group, groupIndex) => (
             <View key={groupIndex} style={styles.settingsGroup}>
               <Text style={styles.groupTitle}>{group.title}</Text>
@@ -226,12 +222,27 @@ export default function SettingsScreen() {
                 <TouchableOpacity
                   key={itemIndex}
                   style={styles.settingItem}
-                  disabled={item.hasSwitch}
+                  disabled={(item as any).hasSwitch}
                   onPress={item.onPress}
                 >
                   <View style={styles.settingLeft}>
                     <View style={styles.settingIcon}>
-                      <item.icon color={theme.colors.primary} size={20} />
+                      {(item as any).isProfile ? (
+                        <View style={styles.profileAvatarContainer}>
+                          {user?.avatar ? (
+                            <Image source={{ uri: user.avatar }} style={styles.profileAvatar} />
+                          ) : (
+                            <View style={[styles.profileAvatar, styles.profileAvatarPlaceholder]}>
+                              <User color="#ffffff" size={24} />
+                            </View>
+                          )}
+                          <View style={styles.editIconContainer}>
+                            <Edit color="#ffffff" size={12} />
+                          </View>
+                        </View>
+                      ) : (item as any).icon ? (
+                        React.createElement((item as any).icon, { color: theme.colors.primary, size: 20 })
+                      ) : null}
                     </View>
                     <View style={styles.settingInfo}>
                       <Text style={styles.settingTitle}>{item.title}</Text>
@@ -239,13 +250,13 @@ export default function SettingsScreen() {
                     </View>
                   </View>
                   <View style={styles.settingRight}>
-                    {item.hasArrow && (
+                    {(item as any).hasArrow && (
                       <ChevronRight color={theme.colors.textTertiary} size={20} />
                     )}
-                    {item.hasSwitch && (
+                    {(item as any).hasSwitch && (
                       <Switch
-                        value={item.switchValue}
-                        onValueChange={item.onSwitchChange}
+                        value={(item as any).switchValue}
+                        onValueChange={(item as any).onSwitchChange}
                         trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
                         thumbColor="#ffffff"
                       />
@@ -528,5 +539,32 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: theme.colors.text,
+  },
+  profileAvatarContainer: {
+    position: 'relative',
+  },
+  profileAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  profileAvatarPlaceholder: {
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editIconContainer: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 8,
+    width: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.card,
   },
 });

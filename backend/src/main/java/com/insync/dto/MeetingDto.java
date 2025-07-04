@@ -20,6 +20,7 @@ public class MeetingDto {
     private List<MeetingParticipantDto> participants;
     private List<ActionItemDto> actionItems;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     // Constructors
     public MeetingDto() {}
@@ -37,6 +38,7 @@ public class MeetingDto {
         this.recordingUrl = meeting.getRecordingUrl();
         this.transcriptUrl = meeting.getTranscriptUrl();
         this.createdAt = meeting.getCreatedAt();
+        this.updatedAt = meeting.getUpdatedAt();
     }
 
     // Getters and Setters
@@ -81,4 +83,7 @@ public class MeetingDto {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

@@ -1,10 +1,13 @@
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\config\SecurityConfig.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\controller\AuthController.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\controller\MeetingController.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\controller\UserController.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\ActionItemDto.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\CalendarEventDto.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\MeetingDto.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\MeetingParticipantDto.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\CreateMeetingRequest.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\JoinMeetingRequest.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\LoginRequest.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\SignupRequest.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\response\ApiResponse.java
@@ -27,5 +30,7 @@ C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\security\Jw
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\security\JwtAuthenticationFilter.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\security\JwtUtils.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\security\UserPrincipal.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\service\CalendarService.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\service\EmailService.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\service\MeetingService.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\service\UserDetailsServiceImpl.java
