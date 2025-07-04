@@ -55,6 +55,38 @@ export const useMeetings = () => {
     }
   };
 
+  const createInstantMeeting = async () => {
+    try {
+      console.log('=== Starting Create Instant Meeting Process ===');
+      
+      // Run authentication diagnosis first
+      const authDiagnosis = await diagnoseAuth();
+      console.log('Auth diagnosis result:', authDiagnosis);
+
+      // Ensure we have valid authentication
+      const isAuth = await ensureAuthenticated();
+      if (!isAuth) {
+        throw new Error('Authentication required. Please log in again.');
+      }
+
+      console.log('Authentication verified, creating instant meeting...');
+      const newMeeting = await apiService.createInstantMeeting();
+      
+      console.log('Instant meeting created successfully:', newMeeting.meetingId);
+      
+      // Add to meetings list
+      setMeetings(prev => [newMeeting, ...prev]);
+      setUpcomingMeetings(prev => [newMeeting, ...prev]);
+      
+      console.log('=== Create Instant Meeting Process Complete ===');
+      return newMeeting;
+    } catch (err) {
+      console.error('=== Create Instant Meeting Failed ===');
+      console.error('Error details:', err);
+      throw err;
+    }
+  };
+
   const joinMeeting = async (meetingId: number) => {
     try {
       console.log('=== Starting Join Meeting Process ===');
@@ -90,6 +122,37 @@ export const useMeetings = () => {
     }
   };
 
+  const joinMeetingByMeetingId = async (meetingId: string) => {
+    try {
+      console.log('=== Starting Join Meeting By ID Process ===');
+      console.log('Meeting ID:', meetingId);
+      
+      // Run authentication diagnosis first
+      const authDiagnosis = await diagnoseAuth();
+      console.log('Auth diagnosis result:', authDiagnosis);
+
+      // Ensure we have valid authentication
+      const isAuth = await ensureAuthenticated();
+      if (!isAuth) {
+        throw new Error('Authentication required. Please log in again.');
+      }
+
+      console.log('Authentication verified, joining meeting by ID...');
+      const meeting = await apiService.joinMeetingByMeetingId(meetingId);
+      
+      console.log('Join by ID successful for meeting:', meeting.title);
+      
+      // Refresh meetings to get updated status
+      await fetchMeetings();
+      console.log('=== Join Meeting By ID Process Complete ===');
+      return meeting;
+    } catch (err) {
+      console.error('=== Join Meeting By ID Failed ===');
+      console.error('Error details:', err);
+      throw err;
+    }
+  };
+
   const leaveMeeting = async (meetingId: number) => {
     try {
       await apiService.leaveMeeting(meetingId);
@@ -111,7 +174,9 @@ export const useMeetings = () => {
     error,
     fetchMeetings,
     createMeeting,
+    createInstantMeeting,
     joinMeeting,
+    joinMeetingByMeetingId,
     leaveMeeting,
   };
 };

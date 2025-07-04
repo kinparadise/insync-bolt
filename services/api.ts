@@ -47,6 +47,10 @@ export interface CreateMeetingRequest {
   participantIds?: number[];
 }
 
+export interface JoinMeetingRequest {
+  meetingId: string;
+}
+
 export interface MeetingDto {
   id: number;
   title: string;
@@ -356,6 +360,18 @@ class ApiService {
     throw new Error('Meeting not found');
   }
 
+  async createInstantMeeting(): Promise<MeetingDto> {
+    console.log('Creating instant meeting...');
+    const response = await this.request<MeetingDto>('/meetings/instant', {
+      method: 'POST',
+    });
+    if (response.data) {
+      console.log('Instant meeting created:', response.data.meetingId);
+      return response.data;
+    }
+    throw new Error('Failed to create instant meeting');
+  }
+
   async joinMeeting(id: number): Promise<ApiResponse> {
     console.log('Joining meeting ID:', id, 'Token available:', !!this.token);
     if (!this.token) {
@@ -364,6 +380,19 @@ class ApiService {
     return this.request(`/meetings/${id}/join`, {
       method: 'POST',
     });
+  }
+
+  async joinMeetingByMeetingId(meetingId: string): Promise<MeetingDto> {
+    console.log('Joining meeting by meeting ID:', meetingId);
+    const response = await this.request<MeetingDto>('/meetings/join', {
+      method: 'POST',
+      body: JSON.stringify({ meetingId }),
+    });
+    if (response.data) {
+      console.log('Successfully joined meeting:', response.data.title);
+      return response.data;
+    }
+    throw new Error('Failed to join meeting');
   }
 
   async leaveMeeting(id: number): Promise<ApiResponse> {
