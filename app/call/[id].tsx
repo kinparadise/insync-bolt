@@ -6,11 +6,28 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MeetingSummaryComponent } from '@/components/MeetingSummaryComponent';
+import { apiService, MeetingDto, MeetingParticipantDto, UserDto, ActionItemDto, CallParticipant, ChatMessage, PollData, BreakoutRoom, MeetingAnalytics, TranscriptionEntry, CallStateUpdate } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CallScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { theme } = useTheme();
+  const { user, ensureAuthenticated } = useAuth();
+  
+  // Meeting data and backend integration
+  const [meeting, setMeeting] = useState<MeetingDto | null>(null);
+  const [callParticipants, setCallParticipants] = useState<CallParticipant[]>([]);
+  const [actionItems, setActionItems] = useState<ActionItemDto[]>([]);
+  const [isLoadingMeeting, setIsLoadingMeeting] = useState(true);
+  const [meetingError, setMeetingError] = useState<string | null>(null);
+  
+  // Real-time call data
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [polls, setPolls] = useState<PollData[]>([]);
+  const [breakoutRooms, setBreakoutRooms] = useState<BreakoutRoom[]>([]);
+  const [transcriptionEntries, setTranscriptionEntries] = useState<TranscriptionEntry[]>([]);
+  const [meetingAnalytics, setMeetingAnalytics] = useState<MeetingAnalytics | null>(null);
   
   // Screen dimensions for responsive design
   const { width, height } = Dimensions.get('window');
@@ -104,85 +121,11 @@ export default function CallScreen() {
 
   // Polls and Q&A
   const [activePoll, setActivePoll] = useState<any>(null);
-  const [polls, setPolls] = useState([
-    {
-      id: '1',
-      question: 'What should be our top priority for Q1?',
-      options: [
-        { id: 'a', text: 'Product Development', votes: 3 },
-        { id: 'b', text: 'Marketing Campaign', votes: 1 },
-        { id: 'c', text: 'Customer Support', votes: 2 },
-      ],
-      isActive: true,
-      createdBy: 'Emily Johnson',
-    },
-  ]);
 
   // Breakout room creation states
   const [newRoomName, setNewRoomName] = useState('');
   const [roomCapacity, setRoomCapacity] = useState('4');
   const [autoAssign, setAutoAssign] = useState(true);
-
-  // Chat messages
-  const [chatMessages, setChatMessages] = useState([
-    {
-      id: '1',
-      sender: 'Emily Johnson',
-      message: 'Welcome everyone! Let\'s start with our agenda.',
-      timestamp: new Date(Date.now() - 10 * 60 * 1000),
-    },
-    {
-      id: '2',
-      sender: 'Jason Miller',
-      message: 'Thanks for organizing this meeting.',
-      timestamp: new Date(Date.now() - 8 * 60 * 1000),
-    },
-    {
-      id: '3',
-      sender: 'Megan Davis',
-      message: 'I have the Q1 report ready to share.',
-      timestamp: new Date(Date.now() - 5 * 60 * 1000),
-    },
-  ]);
-
-  // Breakout rooms data with enhanced functionality
-  const [breakoutRooms, setBreakoutRooms] = useState([
-    {
-      id: '1',
-      name: 'Design Team',
-      participants: [
-        { id: '1', name: 'Sarah Wilson', avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2' },
-        { id: '2', name: 'Mike Johnson', avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2' }
-      ],
-      isActive: true,
-      capacity: 4,
-      createdAt: new Date(Date.now() - 15 * 60 * 1000),
-      topic: 'UI/UX Design Review',
-    },
-    {
-      id: '2',
-      name: 'Development Team',
-      participants: [
-        { id: '3', name: 'Emma Davis', avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2' },
-        { id: '4', name: 'Alex Thompson', avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2' }
-      ],
-      isActive: true,
-      capacity: 4,
-      createdAt: new Date(Date.now() - 10 * 60 * 1000),
-      topic: 'Sprint Planning',
-    },
-    {
-      id: '3',
-      name: 'Marketing Team',
-      participants: [
-        { id: '5', name: 'Lisa Brown', avatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2' }
-      ],
-      isActive: false,
-      capacity: 3,
-      createdAt: new Date(Date.now() - 5 * 60 * 1000),
-      topic: 'Campaign Strategy',
-    },
-  ]);
 
   // Available participants for assignment
   const [availableParticipants] = useState([
@@ -318,6 +261,67 @@ export default function CallScreen() {
       isHost: false,
     },
   ];
+
+  // Real meeting data and backend integration
+  const [currentMeeting, setCurrentMeeting] = useState<MeetingDto | null>(null);
+  const [callStartTime, setCallStartTime] = useState<Date | null>(null);
+  const [realParticipants, setRealParticipants] = useState<MeetingParticipantDto[]>([]);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'failed'>('connecting');
+
+  // Backend integration for real meeting data
+  useEffect(() => {
+    const fetchMeetingData = async () => {
+      try {
+        if (id && typeof id === 'string') {
+          // Try to get meeting by meeting ID first
+          const meeting = await apiService.joinMeetingByMeetingId(id);
+          setCurrentMeeting(meeting);
+          setRealParticipants(meeting.participants || []);
+          setCallStartTime(new Date());
+          setConnectionStatus('connected');
+          
+          console.log('Successfully joined meeting:', meeting.title);
+        }
+      } catch (error) {
+        console.error('Failed to fetch meeting data:', error);
+        setConnectionStatus('failed');
+        Alert.alert(
+          'Meeting Error', 
+          'Could not connect to the meeting. Please check your connection and try again.',
+          [
+            { text: 'Retry', onPress: () => fetchMeetingData() },
+            { text: 'Leave', onPress: () => router.back() }
+          ]
+        );
+      }
+    };
+
+    fetchMeetingData();
+  }, [id]);
+
+  // Real-time call duration tracking
+  useEffect(() => {
+    if (callStartTime && connectionStatus === 'connected') {
+      const interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - callStartTime.getTime()) / 1000);
+        setCallDuration(elapsed);
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [callStartTime, connectionStatus]);
+
+  // Real participants with backend data
+  const participantsWithRealData = realParticipants.length > 0 
+    ? realParticipants.map(participant => ({
+        id: participant.id.toString(),
+        name: participant.user.name,
+        avatar: participant.user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(participant.user.name)}&background=random`,
+        isMuted: Math.random() > 0.7, // Mock audio state
+        isVideoOn: Math.random() > 0.3, // Mock video state
+        isHost: participant.user.id === currentMeeting?.host.id,
+      }))
+    : participants; // Fall back to mock data if no real participants
 
   // Timer for call duration
   useEffect(() => {
@@ -1011,14 +1015,14 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    paddingTop: 20, // Bring down from status bar
+    paddingTop: 50, // Increased spacing from status bar
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 12
   },
   callInfo: {
     alignItems: 'center',
@@ -1120,7 +1124,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    marginBottom: 8,
+    marginBottom: 5,
   },
   participantOverlay: {
     position: 'absolute',
@@ -2394,7 +2398,8 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingTop: 20,
+    paddingTop: 60, // Increased spacing from status bar
+    marginBottom: 10, // Add spacing between header and video
   },
   participantInfoHeader: {
     flexDirection: 'row',
@@ -2451,7 +2456,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     backgroundColor: '#3c4043',
   },
   mainParticipantTile: {
-    top: 0,
+    top: 2, // Reduced since header now has proper spacing
     left: 8,
     right: 8,
     bottom: 0,

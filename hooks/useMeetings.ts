@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiService, MeetingDto, CreateMeetingRequest } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { meetingsRateLimiter } from '@/utils/circuitBreaker';
 
 export const useMeetings = () => {
   const [meetings, setMeetings] = useState<MeetingDto[]>([]);
@@ -8,15 +9,34 @@ export const useMeetings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, isLoading: authLoading, ensureAuthenticated, diagnoseAuth } = useAuth();
+  const fetchingRef = useRef(false); // Prevent concurrent fetches
 
   // Auto-fetch meetings when user is authenticated and auth is not loading
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
+    // Early return if not authenticated
+    if (!isAuthenticated || authLoading) {
+      console.log('Authentication not ready, skipping meetings fetch');
+      return;
+    }
+
+    if (!fetchingRef.current) {
       fetchMeetings();
     }
   }, [isAuthenticated, authLoading]);
 
   const fetchMeetings = async () => {
+    if (fetchingRef.current) {
+      console.log('Fetch already in progress, skipping...');
+      return;
+    }
+
+    // Rate limiting check
+    if (!meetingsRateLimiter.canExecute()) {
+      console.log('Rate limited, skipping fetch. Next allowed in:', meetingsRateLimiter.getTimeUntilNext(), 'ms');
+      return;
+    }
+
+    fetchingRef.current = true;
     setIsLoading(true);
     setError(null);
     
@@ -25,6 +45,7 @@ export const useMeetings = () => {
     if (!token) {
       setError('Authentication required');
       setIsLoading(false);
+      fetchingRef.current = false;
       return;
     }
     
@@ -35,10 +56,25 @@ export const useMeetings = () => {
       ]);
       setMeetings(allMeetings);
       setUpcomingMeetings(upcoming);
+      setError(null); // Clear any previous errors
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch meetings');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch meetings';
+      setError(errorMessage);
+      
+      // If it's an authentication error, don't keep retrying
+      if (err instanceof Error && err.name === 'AuthenticationError') {
+        console.log('Authentication error detected, stopping fetch attempts');
+        return;
+      }
+      
+      // If circuit breaker is open, don't retry immediately
+      if (errorMessage.includes('Circuit breaker is OPEN')) {
+        console.log('Circuit breaker is open, stopping fetch attempts');
+        return;
+      }
     } finally {
       setIsLoading(false);
+      fetchingRef.current = false;
     }
   };
 
@@ -163,9 +199,8 @@ export const useMeetings = () => {
     }
   };
 
-  useEffect(() => {
-    fetchMeetings();
-  }, []);
+  // Remove the duplicate useEffect that was causing double fetching
+  // Initial fetch is handled by the useEffect above that monitors auth state
 
   return {
     meetings,

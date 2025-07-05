@@ -47,27 +47,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         apiService.setToken(storedToken);
         setUser(JSON.parse(storedUser));
         
-        console.log('Token set in API service, verifying with server...');
+        console.log('Token set in API service, user authenticated from storage');
         
-        // Verify token is still valid by fetching current user
+        // Verify token is still valid once - no repeated checks
         try {
           const currentUser = await apiService.getCurrentUser();
-          console.log('Token verification successful, user:', currentUser.email);
+          console.log('Token verification successful, updating user data');
           setUser(currentUser);
           await AsyncStorage.setItem(USER_KEY, JSON.stringify(currentUser));
         } catch (error) {
-          // Token is invalid, clear stored data
-          console.log('Stored token is invalid or expired, clearing auth data');
-          console.log('Error details:', error);
-          
-          // Check if it's a network error vs authentication error
-          if (error instanceof Error && error.message.includes('Network request failed')) {
-            console.log('Network error during token validation - keeping user logged in for now');
-            // Keep the user logged in with stored data, will retry later
-          } else {
-            console.log('Authentication error - token is invalid, logging out');
-            await clearStoredAuth();
-          }
+          console.log('Token verification failed, clearing authentication');
+          await clearStoredAuth();
         }
       } else {
         console.log('No stored authentication found');
@@ -186,11 +176,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const ensureAuthenticated = async () => {
     const token = apiService.getToken();
-    if (!token && user) {
-      console.log('Token missing but user exists, refreshing auth...');
-      await refreshAuth();
+    const hasUser = !!user;
+    
+    // If we have both token and user, we're authenticated
+    if (token && hasUser) {
+      return true;
     }
-    return !!apiService.getToken();
+    
+    // If we have user but no token, try to refresh from storage once
+    if (hasUser && !token) {
+      console.log('Token missing but user exists, attempting refresh...');
+      try {
+        const storedToken = await AsyncStorage.getItem(TOKEN_KEY);
+        if (storedToken) {
+          apiService.setToken(storedToken);
+          return true;
+        }
+      } catch (error) {
+        console.error('Failed to refresh token from storage:', error);
+      }
+    }
+    
+    // If we get here, authentication is not valid
+    console.log('Authentication not available');
+    return false;
   };
 
   const diagnoseAuth = async () => {

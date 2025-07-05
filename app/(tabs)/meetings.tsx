@@ -23,7 +23,7 @@ export default function MeetingsScreen() {
   const usableHeight = deviceHeight - insets.top - insets.bottom;
   
   const { meetings, upcomingMeetings, isLoading, error, fetchMeetings, joinMeeting, createInstantMeeting, joinMeetingByMeetingId } = useMeetings();
-  const { diagnoseAuth } = useAuth();
+  const { diagnoseAuth, ensureAuthenticated, user, isAuthenticated } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
@@ -360,6 +360,32 @@ export default function MeetingsScreen() {
 
   const styles = createStyles(theme);
 
+  // Authentication check and data loading - single useEffect to prevent duplicates
+  useEffect(() => {
+    const initializeData = async () => {
+      if (!user || !isAuthenticated) {
+        console.log('No authenticated user found, skipping meeting initialization');
+        return;
+      }
+
+      try {
+        // Ensure user is authenticated
+        const isAuth = await ensureAuthenticated();
+        if (isAuth) {
+          // Load meetings data
+          await fetchMeetings();
+        } else {
+          console.warn('User is not properly authenticated');
+        }
+      } catch (error) {
+        console.error('Error initializing meetings data:', error);
+        // Don't navigate away, just show error in UI
+      }
+    };
+
+    initializeData();
+  }, [user, isAuthenticated]); // Removed ensureAuthenticated and fetchMeetings from deps to prevent loops
+
   // Animation effect for search
   useEffect(() => {
     const isSearching = searchQuery.trim().length > 0;
@@ -377,6 +403,8 @@ export default function MeetingsScreen() {
       }),
     ]).start();
   }, [searchQuery]);
+
+  // Removed duplicate useEffect that was causing infinite loops
 
   return (
     <ThemedLinearGradient style={{ ...styles.container, height: usableHeight }}>

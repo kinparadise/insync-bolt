@@ -1,3 +1,5 @@
+import { authCircuitBreaker, meetingsCircuitBreaker, generalApiCircuitBreaker } from '@/utils/circuitBreaker';
+
 const API_BASE_URL = 'http://10.232.200.20:8080/api';
 
 export interface ApiResponse<T = any> {
@@ -79,6 +81,22 @@ export interface MeetingParticipantDto {
   messagesCount: number;
   engagementScore: number;
   status: 'INVITED' | 'JOINED' | 'LEFT' | 'REMOVED';
+  // Real-time call states
+  isMuted?: boolean;
+  isVideoOn?: boolean;
+  isHandRaised?: boolean;
+  isScreenSharing?: boolean;
+  isHost?: boolean;
+  connectionQuality?: 'excellent' | 'good' | 'poor';
+}
+
+// Extended participant type for UI display
+export interface CallParticipant extends MeetingParticipantDto {
+  name: string;
+  avatar?: string;
+  isPresenter?: boolean;
+  isInBreakoutRoom?: boolean;
+  breakoutRoomId?: string;
 }
 
 export interface ActionItemDto {
@@ -124,10 +142,70 @@ export interface NotificationPreferenceDto {
 export interface RescheduleMeetingRequest {
   newStartTime: string;
   newEndTime?: string;
+  reason?: string;
+}
+
+// Advanced calling feature interfaces
+export interface CallStateUpdate {
+  participantId: number;
+  isMuted?: boolean;
+  isVideoOn?: boolean;
+  isHandRaised?: boolean;
+  isScreenSharing?: boolean;
+}
+
+export interface ChatMessage {
+  id: string;
+  senderId: number;
+  senderName: string;
+  message: string;
+  timestamp: Date;
+  type: 'text' | 'system' | 'reaction';
+}
+
+export interface PollData {
+  id: string;
+  question: string;
+  options: string[];
+  responses: { [key: string]: number };
+  isActive: boolean;
+  createdBy: number;
+  createdAt: Date;
+}
+
+export interface BreakoutRoom {
+  id: string;
+  name: string;
+  participantIds: number[];
+  isActive: boolean;
+  maxParticipants: number;
+}
+
+export interface MeetingAnalytics {
+  totalDuration: number;
+  participantCount: number;
+  engagementScore: number;
+  talkTimeDistribution: { [key: number]: number };
+  chatMessageCount: number;
+  pollCount: number;
+  screenShareDuration: number;
+  recordingDuration: number;
+}
+
+export interface TranscriptionEntry {
+  id: string;
+  speaker: string;
+  text: string;
+  timestamp: Date;
+  confidence: number;
 }
 
 class ApiService {
   private token: string | null = null;
+  private requestCount = 0;
+  private lastRequestTime = 0;
+  private readonly MAX_REQUESTS_PER_SECOND = 5;
+  private readonly RATE_LIMIT_WINDOW = 1000; // 1 second
 
   setToken(token: string) {
     this.token = token;
@@ -137,10 +215,34 @@ class ApiService {
     this.token = null;
   }
 
+  private checkRateLimit(): boolean {
+    const now = Date.now();
+    
+    // Reset counter if enough time has passed
+    if (now - this.lastRequestTime > this.RATE_LIMIT_WINDOW) {
+      this.requestCount = 0;
+      this.lastRequestTime = now;
+    }
+    
+    // Check if we're exceeding the rate limit
+    if (this.requestCount >= this.MAX_REQUESTS_PER_SECOND) {
+      console.warn('Rate limit exceeded, request blocked');
+      return false;
+    }
+    
+    this.requestCount++;
+    return true;
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
+    // Check rate limit first
+    if (!this.checkRateLimit()) {
+      throw new Error('Rate limit exceeded. Please wait before making more requests.');
+    }
+
     const url = `${API_BASE_URL}${endpoint}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -181,7 +283,9 @@ class ApiService {
           
           // Create a more specific error message
           const errorMsg = data.message || 'Authentication failed - please log in again';
-          throw new Error(errorMsg);
+          const authError = new Error(errorMsg);
+          authError.name = 'AuthenticationError';
+          throw authError;
         }
         throw new Error(data.message || `Request failed with status ${response.status}`);
       }
@@ -326,11 +430,13 @@ class ApiService {
 
   // User Management
   async getCurrentUser(): Promise<UserDto> {
-    const response = await this.request<UserDto>('/users/me');
-    if (response.data) {
-      return response.data;
-    }
-    throw new Error('Failed to get user profile');
+    return authCircuitBreaker.execute(async () => {
+      const response = await this.request<UserDto>('/users/me');
+      if (response.data) {
+        return response.data;
+      }
+      throw new Error('Failed to get user profile');
+    });
   }
 
   async updateCurrentUser(userData: Partial<UserDto>): Promise<UserDto> {
@@ -381,8 +487,10 @@ class ApiService {
   }
 
   async getUserMeetings(): Promise<MeetingDto[]> {
-    const response = await this.request<MeetingDto[]>('/meetings/my');
-    return response.data || [];
+    return meetingsCircuitBreaker.execute(async () => {
+      const response = await this.request<MeetingDto[]>('/meetings/my');
+      return response.data || [];
+    });
   }
 
   async getMeetingById(id: number): Promise<MeetingDto> {
@@ -435,8 +543,10 @@ class ApiService {
   }
 
   async getUpcomingMeetings(): Promise<MeetingDto[]> {
-    const response = await this.request<MeetingDto[]>('/meetings/upcoming');
-    return response.data || [];
+    return meetingsCircuitBreaker.execute(async () => {
+      const response = await this.request<MeetingDto[]>('/meetings/upcoming');
+      return response.data || [];
+    });
   }
 
   // Action Items
@@ -621,6 +731,122 @@ class ApiService {
 
     console.log('=== End Diagnosis ===');
     return diagnosis;
+  }
+
+  // Advanced Call Management APIs
+  async updateCallState(meetingId: string, callState: CallStateUpdate): Promise<ApiResponse> {
+    return this.request(`/meetings/${meetingId}/call-state`, {
+      method: 'PUT',
+      body: JSON.stringify(callState),
+    });
+  }
+
+  async getMeetingParticipants(meetingId: string): Promise<CallParticipant[]> {
+    const response = await this.request<CallParticipant[]>(`/meetings/${meetingId}/participants`);
+    return response.data || [];
+  }
+
+  async sendChatMessage(meetingId: string, message: string): Promise<ChatMessage> {
+    const response = await this.request<ChatMessage>(`/meetings/${meetingId}/chat`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to send chat message');
+  }
+
+  async getChatMessages(meetingId: string): Promise<ChatMessage[]> {
+    const response = await this.request<ChatMessage[]>(`/meetings/${meetingId}/chat`);
+    return response.data || [];
+  }
+
+  async createPoll(meetingId: string, question: string, options: string[]): Promise<PollData> {
+    const response = await this.request<PollData>(`/meetings/${meetingId}/polls`, {
+      method: 'POST',
+      body: JSON.stringify({ question, options }),
+    });
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to create poll');
+  }
+
+  async submitPollResponse(meetingId: string, pollId: string, optionIndex: number): Promise<ApiResponse> {
+    return this.request(`/meetings/${meetingId}/polls/${pollId}/respond`, {
+      method: 'POST',
+      body: JSON.stringify({ optionIndex }),
+    });
+  }
+
+  async getActivePolls(meetingId: string): Promise<PollData[]> {
+    const response = await this.request<PollData[]>(`/meetings/${meetingId}/polls/active`);
+    return response.data || [];
+  }
+
+  async createBreakoutRoom(meetingId: string, name: string, maxParticipants: number): Promise<BreakoutRoom> {
+    const response = await this.request<BreakoutRoom>(`/meetings/${meetingId}/breakout-rooms`, {
+      method: 'POST',
+      body: JSON.stringify({ name, maxParticipants }),
+    });
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to create breakout room');
+  }
+
+  async joinBreakoutRoom(meetingId: string, roomId: string): Promise<ApiResponse> {
+    return this.request(`/meetings/${meetingId}/breakout-rooms/${roomId}/join`, {
+      method: 'POST',
+    });
+  }
+
+  async leaveBreakoutRoom(meetingId: string, roomId: string): Promise<ApiResponse> {
+    return this.request(`/meetings/${meetingId}/breakout-rooms/${roomId}/leave`, {
+      method: 'POST',
+    });
+  }
+
+  async getBreakoutRooms(meetingId: string): Promise<BreakoutRoom[]> {
+    const response = await this.request<BreakoutRoom[]>(`/meetings/${meetingId}/breakout-rooms`);
+    return response.data || [];
+  }
+
+  async startRecording(meetingId: string): Promise<ApiResponse> {
+    return this.request(`/meetings/${meetingId}/recording/start`, {
+      method: 'POST',
+    });
+  }
+
+  async stopRecording(meetingId: string): Promise<ApiResponse> {
+    return this.request(`/meetings/${meetingId}/recording/stop`, {
+      method: 'POST',
+    });
+  }
+
+  async getMeetingAnalytics(meetingId: string): Promise<MeetingAnalytics> {
+    const response = await this.request<MeetingAnalytics>(`/meetings/${meetingId}/analytics`);
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to get meeting analytics');
+  }
+
+  async getTranscription(meetingId: string): Promise<TranscriptionEntry[]> {
+    const response = await this.request<TranscriptionEntry[]>(`/meetings/${meetingId}/transcription`);
+    return response.data || [];
+  }
+
+  async exportMeetingData(meetingId: string, format: 'pdf' | 'excel' | 'video'): Promise<{ downloadUrl: string }> {
+    const response = await this.request<{ downloadUrl: string }>(`/meetings/${meetingId}/export`, {
+      method: 'POST',
+      body: JSON.stringify({ format }),
+    });
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to export meeting data');
   }
 }
 
