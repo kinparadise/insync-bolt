@@ -23,6 +23,7 @@ export default function JoinScreen() {
   };
 
   const handleJoinCall = () => {
+    // Route to pre-join screen for professionalism
     router.push(`/call/${id}_prejoin`);
   };
 

@@ -1,8 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, TextInput, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, TextInput, ScrollView, ActivityIndicator, Image, Dimensions } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Mic, MicOff, Video, VideoOff, Users, Shield, Square, Settings, ChevronLeft, Lock, MessageCircle, Star, UserPlus, Volume2 } from 'lucide-react-native';
-import { useState } from 'react';
+import { Mic, MicOff, Video, VideoOff, Users, Shield, Square, Settings, ChevronLeft, Lock, MessageCircle, Star, UserPlus, Volume2, Camera, Phone, RefreshCw } from 'lucide-react-native';
+import { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/api';
@@ -14,9 +14,10 @@ export default function PreJoinScreen() {
   const meetingId = typeof id === 'string' ? id.replace(/_prejoin$/, '') : '';
   const { theme } = useTheme();
   const { user } = useAuth();
+  const { width, height } = Dimensions.get('window');
 
   // Host settings
-  const [muteAll, setMuteAll] = useState(true);
+  const [muteAll, setMuteAll] = useState(false);
   const [waitingRoom, setWaitingRoom] = useState(true);
   const [recording, setRecording] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -31,6 +32,32 @@ export default function PreJoinScreen() {
   // UI states
   const [isLoading, setIsLoading] = useState(false);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [meetingInfo, setMeetingInfo] = useState<any>(null);
+  const [isLoadingMeetingInfo, setIsLoadingMeetingInfo] = useState(true);
+
+  // Load meeting information
+  useEffect(() => {
+    const loadMeetingInfo = async () => {
+      try {
+        if (meetingId && meetingId.trim() !== '') {
+          setIsLoadingMeetingInfo(true);
+          // Set default meeting info for now
+          setMeetingInfo({
+            title: 'Video Meeting',
+            participantCount: 0,
+            host: user?.name || 'Host',
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load meeting info:', error);
+        // Continue without meeting info
+      } finally {
+        setIsLoadingMeetingInfo(false);
+      }
+    };
+
+    loadMeetingInfo();
+  }, [meetingId, user?.name]);
 
   const handleStartMeeting = async () => {
     if (!meetingId) {
@@ -86,18 +113,100 @@ export default function PreJoinScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <ChevronLeft color={theme.colors.text} size={24} />
           </TouchableOpacity>
-          <Text style={styles.title}>Pre-Join Meeting</Text>
+          <Text style={styles.title}>Ready to Join?</Text>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.meetingLabel}>Meeting ID</Text>
-          <Text style={styles.meetingId}>{meetingId}</Text>
-          <Text style={styles.hostLabel}>Host</Text>
-          <Text style={styles.hostName}>{user?.name || 'You'}</Text>
+        {/* Video Preview Section */}
+        <View style={styles.videoPreviewSection}>
+          <View style={styles.videoPreview}>
+            {isVideoOn ? (
+              <View style={styles.cameraPreview}>
+                <Image 
+                  source={{ uri: user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=random` }} 
+                  style={styles.userAvatar}
+                />
+                <View style={styles.cameraOverlay}>
+                  <Camera color="#ffffff" size={24} />
+                  <Text style={styles.cameraText}>Camera Preview</Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.videoOffContainer}>
+                <Image 
+                  source={{ uri: user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=random` }} 
+                  style={styles.userAvatarLarge}
+                />
+                <Text style={styles.videoOffText}>Camera is off</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Audio/Video Controls */}
+          <View style={styles.avControls}>
+            <TouchableOpacity 
+              style={[styles.avButton, isMuted && styles.avButtonMuted]}
+              onPress={() => setIsMuted(!isMuted)}
+            >
+              {isMuted ? <MicOff color="#ffffff" size={24} /> : <Mic color="#ffffff" size={24} />}
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.avButton, !isVideoOn && styles.avButtonMuted]}
+              onPress={() => setIsVideoOn(!isVideoOn)}
+            >
+              {isVideoOn ? <Video color="#ffffff" size={24} /> : <VideoOff color="#ffffff" size={24} />}
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.avButton}>
+              <Settings color="#ffffff" size={24} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Meeting Info Card */}
+        <View style={styles.meetingInfoCard}>
+          {isLoadingMeetingInfo ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator color={theme.colors.primary} size="small" />
+              <Text style={styles.loadingText}>Loading meeting info...</Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.meetingHeader}>
+                <View style={styles.meetingIcon}>
+                  <Video color={theme.colors.primary} size={20} />
+                </View>
+                <View style={styles.meetingDetails}>
+                  <Text style={styles.meetingTitle}>
+                    {meetingInfo?.title || 'Video Meeting'}
+                  </Text>
+                  <Text style={styles.meetingId}>ID: {meetingId}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.meetingMeta}>
+                <View style={styles.metaItem}>
+                  <Users color={theme.colors.textSecondary} size={16} />
+                  <Text style={styles.metaText}>
+                    {meetingInfo?.participantCount || 0} participants
+                  </Text>
+                </View>
+                {meetingInfo?.host && (
+                  <View style={styles.metaItem}>
+                    <Star color={theme.colors.textSecondary} size={16} />
+                    <Text style={styles.metaText}>
+                      Host: {meetingInfo.host}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -199,17 +308,27 @@ export default function PreJoinScreen() {
           </View>
         )}
 
-        <TouchableOpacity 
-          style={[styles.startButton, isLoading && styles.startButtonDisabled]} 
-          onPress={handleStartMeeting}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#ffffff" size="small" />
-          ) : (
-            <Text style={styles.startButtonText}>Start Meeting</Text>
-          )}
-        </TouchableOpacity>
+        {/* Join/Cancel Buttons */}
+        <View style={styles.joinButtonContainer}>
+          <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.joinButton, isLoading && styles.startButtonDisabled]} 
+            onPress={handleStartMeeting}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#ffffff" size="small" />
+            ) : (
+              <>
+                <Phone color="#ffffff" size={20} />
+                <Text style={styles.joinButtonText}>Join Meeting</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -232,10 +351,161 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginRight: 12,
   },
   title: {
-    fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
+    fontSize: 24,
+    fontFamily: 'Inter-Bold',
     color: theme.colors.text,
   },
+  
+  // Video Preview Section
+  videoPreviewSection: {
+    margin: 20,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  videoPreview: {
+    height: 240,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  cameraPreview: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1a1a2e',
+  },
+  userAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 16,
+  },
+  userAvatarLarge: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 16,
+  },
+  cameraOverlay: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  cameraText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    marginLeft: 6,
+  },
+  videoOffContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.card,
+  },
+  videoOffText: {
+    color: theme.colors.textSecondary,
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+  },
+  
+  // Audio/Video Controls
+  avControls: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+    gap: 16,
+  },
+  avButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  avButtonMuted: {
+    backgroundColor: theme.colors.error,
+  },
+  
+  // Meeting Info Card
+  meetingInfoCard: {
+    backgroundColor: theme.colors.surface,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  loadingText: {
+    color: theme.colors.textSecondary,
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    marginLeft: 12,
+  },
+  meetingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  meetingIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.primaryLight || theme.colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  meetingDetails: {
+    flex: 1,
+  },
+  meetingTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  meetingMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  metaText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: theme.colors.textSecondary,
+    marginLeft: 6,
+  },
+  
+  // Legacy styles (keeping for compatibility)
   card: {
     backgroundColor: theme.colors.surface,
     margin: 20,
@@ -254,8 +524,8 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginBottom: 4,
   },
   meetingId: {
-    fontSize: 18,
-    fontFamily: 'Inter-Bold',
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
     color: theme.colors.text,
     marginBottom: 16,
   },
@@ -300,14 +570,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontFamily: 'Inter-Medium',
     color: theme.colors.text,
     marginLeft: 12,
-  },
-  avButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   advancedToggle: {
     flexDirection: 'row',
@@ -363,14 +625,14 @@ const createStyles = (theme: any) => StyleSheet.create({
     backgroundColor: theme.colors.primary,
     marginHorizontal: 20,
     marginVertical: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 18,
+    borderRadius: 16,
     alignItems: 'center',
     shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowRadius: 12,
+    elevation: 8,
   },
   startButtonDisabled: {
     backgroundColor: theme.colors.textTertiary,
@@ -378,6 +640,48 @@ const createStyles = (theme: any) => StyleSheet.create({
   startButtonText: {
     color: '#fff',
     fontSize: 18,
+    fontFamily: 'Inter-Bold',
+  },
+  
+  // New Join Button Styles
+  joinButtonContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginVertical: 10,
+    gap: 12,
+  },
+  joinButton: {
+    flex: 1,
+    backgroundColor: theme.colors.success,
+    paddingVertical: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    shadowColor: theme.colors.success,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  joinButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontFamily: 'Inter-Bold',
+    marginLeft: 8,
+  },
+  cancelButton: {
+    backgroundColor: theme.colors.card,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  cancelButtonText: {
+    color: theme.colors.text,
+    fontSize: 16,
     fontFamily: 'Inter-SemiBold',
   },
 }); 
