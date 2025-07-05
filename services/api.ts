@@ -246,7 +246,7 @@ class ApiService {
   private token: string | null = null;
   private requestCount = 0;
   private lastRequestTime = 0;
-  private readonly MAX_REQUESTS_PER_SECOND = 5;
+  private readonly MAX_REQUESTS_PER_SECOND = 20; // Increased for video calling app
   private readonly RATE_LIMIT_WINDOW = 1000; // 1 second
 
   setToken(token: string) {
@@ -255,6 +255,102 @@ class ApiService {
 
   clearToken() {
     this.token = null;
+  }
+
+  // Reset rate limiter - useful for debugging or when starting new operations
+  resetRateLimit() {
+    this.requestCount = 0;
+    this.lastRequestTime = 0;
+    console.log('Rate limiter reset');
+  }
+
+  // Check if we're currently rate limited
+  isRateLimited(): boolean {
+    const now = Date.now();
+    if (now - this.lastRequestTime > this.RATE_LIMIT_WINDOW) {
+      return false;
+    }
+    return this.requestCount >= this.MAX_REQUESTS_PER_SECOND;
+  }
+
+  // Reset all circuit breakers and rate limiters - useful for debugging
+  resetAllLimiters() {
+    this.resetRateLimit();
+    authCircuitBreaker.reset();
+    meetingsCircuitBreaker.reset();
+    generalApiCircuitBreaker.reset();
+    console.log('All rate limiters and circuit breakers reset');
+  }
+
+  // Get current status of all limiters
+  getLimiterStatus() {
+    return {
+      rateLimit: {
+        isLimited: this.isRateLimited(),
+        requestCount: this.requestCount,
+        maxRequests: this.MAX_REQUESTS_PER_SECOND,
+        timeWindow: this.RATE_LIMIT_WINDOW,
+      },
+      circuitBreakers: {
+        auth: authCircuitBreaker.getState(),
+        meetings: meetingsCircuitBreaker.getState(),
+        general: generalApiCircuitBreaker.getState(),
+      }
+    };
+  }
+
+  // Debug method to test rate limiting without making real API calls
+  testRateLimit(numRequests: number = 10): Promise<{
+    success: number;
+    rateLimited: number;
+    results: Array<{ attempt: number; success: boolean; message: string }>;
+  }> {
+    return new Promise((resolve) => {
+      let success = 0;
+      let rateLimited = 0;
+      const results: Array<{ attempt: number; success: boolean; message: string }> = [];
+
+      for (let i = 1; i <= numRequests; i++) {
+        setTimeout(() => {
+          const canProceed = this.checkRateLimit();
+          if (canProceed) {
+            success++;
+            results.push({ attempt: i, success: true, message: `Request ${i} allowed` });
+          } else {
+            rateLimited++;
+            results.push({ attempt: i, success: false, message: `Request ${i} rate limited` });
+          }
+
+          if (i === numRequests) {
+            resolve({ success, rateLimited, results });
+          }
+        }, i * 100); // 100ms apart
+      }
+    });
+  }
+
+  // Get a human-readable status of rate limiting
+  getRateLimitStatus(): string {
+    if (!this.isRateLimited()) {
+      return `Rate limit OK: ${this.requestCount}/${this.MAX_REQUESTS_PER_SECOND} requests used`;
+    }
+    
+    const timeToWait = Math.ceil((this.RATE_LIMIT_WINDOW - (Date.now() - this.lastRequestTime)) / 1000);
+    return `Rate limited: Wait ${timeToWait} seconds (${this.requestCount}/${this.MAX_REQUESTS_PER_SECOND} requests used)`;
+  }
+
+  // Async method that waits until rate limit is clear
+  async waitForRateLimit(): Promise<void> {
+    if (!this.isRateLimited()) {
+      return;
+    }
+    
+    const timeToWait = this.RATE_LIMIT_WINDOW - (Date.now() - this.lastRequestTime);
+    console.log(`Waiting ${timeToWait}ms for rate limit to clear...`);
+    
+    return new Promise(resolve => {
+      setTimeout(resolve, timeToWait + 100); // Add 100ms buffer
+    });
   }
 
   private checkRateLimit(): boolean {
@@ -282,7 +378,8 @@ class ApiService {
   ): Promise<ApiResponse<T>> {
     // Check rate limit first
     if (!this.checkRateLimit()) {
-      throw new Error('Rate limit exceeded. Please wait before making more requests.');
+      const timeToWait = Math.ceil((this.RATE_LIMIT_WINDOW - (Date.now() - this.lastRequestTime)) / 1000);
+      throw new Error(`Rate limit exceeded. Please wait ${timeToWait} seconds before making more requests.`);
     }
 
     const url = `${API_BASE_URL}${endpoint}`;
@@ -545,14 +642,16 @@ class ApiService {
 
   async createInstantMeeting(): Promise<MeetingDto> {
     console.log('Creating instant meeting...');
-    const response = await this.request<MeetingDto>('/meetings/instant', {
-      method: 'POST',
+    return meetingsCircuitBreaker.execute(async () => {
+      const response = await this.request<MeetingDto>('/meetings/instant', {
+        method: 'POST',
+      });
+      if (response.data) {
+        console.log('Instant meeting created:', response.data.meetingId);
+        return response.data;
+      }
+      throw new Error('Failed to create instant meeting');
     });
-    if (response.data) {
-      console.log('Instant meeting created:', response.data.meetingId);
-      return response.data;
-    }
-    throw new Error('Failed to create instant meeting');
   }
 
   async joinMeeting(id: number): Promise<ApiResponse> {
@@ -704,7 +803,7 @@ class ApiService {
     }
   }
 
-  // Authentication diagnostics
+  // Authentication diagnostics - bypasses rate limiting for debugging
   async diagnoseAuthentication(): Promise<{
     hasToken: boolean;
     tokenLength?: number;
@@ -724,54 +823,58 @@ class ApiService {
       error: undefined as string | undefined,
     };
 
-    console.log('=== Authentication Diagnosis ===');
+    console.log('=== Authentication Diagnosis (bypassing rate limits) ===');
     console.log('Token available:', diagnosis.hasToken);
     console.log('Token length:', diagnosis.tokenLength);
-    console.log('Token prefix:', diagnosis.tokenPrefix);
 
-    try {
-      // Test server connectivity
-      const response = await fetch(`${API_BASE_URL}/auth/test`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      diagnosis.canReachServer = response.status === 200;
-      console.log('Server reachable:', diagnosis.canReachServer);
-    } catch (error) {
-      console.log('Server connectivity error:', error);
-      diagnosis.error = 'Cannot reach server';
+    // Skip detailed server tests if we don't have a token
+    if (!diagnosis.hasToken) {
+      diagnosis.error = 'No authentication token available';
+      console.log('=== End Diagnosis: No Token ===');
+      return diagnosis;
     }
 
-    if (diagnosis.hasToken) {
-      try {
-        // Test token validity using verification endpoint
-        const tokenResponse = await fetch(`${API_BASE_URL}/auth/verify`, {
-          method: 'GET',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.token}`
-          },
-        });
+    try {
+      // Only test token validity without making multiple calls
+      const tokenResponse = await fetch(`${API_BASE_URL}/auth/verify`, {
+        method: 'GET',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.token}`
+        },
+      });
+      
+      diagnosis.canReachServer = true; // If we get any response, server is reachable
+      
+      if (tokenResponse.status === 200) {
+        diagnosis.isTokenValid = true;
+        console.log('Token is valid');
         
-        if (tokenResponse.status === 200) {
-          diagnosis.isTokenValid = true;
-          console.log('Token is valid via auth/verify endpoint');
-          
-          // Also test with user info
-          const userInfo = await this.getCurrentUser();
-          diagnosis.userInfo = userInfo;
-          console.log('Token valid, user:', userInfo.name, userInfo.email);
-        } else {
-          diagnosis.isTokenValid = false;
+        // Try to get user info from token response if available
+        try {
+          const userData = await tokenResponse.json();
+          if (userData && userData.user) {
+            diagnosis.userInfo = userData.user;
+          }
+        } catch (e) {
+          // If user data not in verify response, skip additional API call to avoid rate limits
+          console.log('User data not available in verify response, skipping additional call');
+        }
+      } else {
+        diagnosis.isTokenValid = false;
+        try {
           const errorData = await tokenResponse.json();
           diagnosis.error = errorData.message || 'Token verification failed';
-          console.log('Token verification failed:', diagnosis.error);
+        } catch (e) {
+          diagnosis.error = `Token verification failed with status ${tokenResponse.status}`;
         }
-      } catch (error) {
-        diagnosis.isTokenValid = false;
-        diagnosis.error = error instanceof Error ? error.message : 'Token validation failed';
-        console.log('Token validation error:', diagnosis.error);
+        console.log('Token verification failed:', diagnosis.error);
       }
+    } catch (error) {
+      diagnosis.canReachServer = false;
+      diagnosis.isTokenValid = false;
+      diagnosis.error = error instanceof Error ? error.message : 'Network error during diagnosis';
+      console.log('Diagnosis error:', diagnosis.error);
     }
 
     console.log('=== End Diagnosis ===');
@@ -792,19 +895,29 @@ class ApiService {
   }
 
   async sendChatMessage(meetingId: string, message: string): Promise<ChatMessage> {
-    const response = await this.request<ChatMessage>(`/meetings/${meetingId}/chat`, {
+    const response = await this.request<any>(`/meetings/${meetingId}/chat`, {
       method: 'POST',
       body: JSON.stringify({ message }),
     });
     if (response.data) {
-      return response.data;
+      // Ensure timestamp is converted to Date object
+      return {
+        ...response.data,
+        timestamp: response.data.timestamp ? new Date(response.data.timestamp) : new Date()
+      };
     }
     throw new Error('Failed to send chat message');
   }
 
   async getChatMessages(meetingId: string): Promise<ChatMessage[]> {
-    const response = await this.request<ChatMessage[]>(`/meetings/${meetingId}/chat`);
-    return response.data || [];
+    const response = await this.request<any[]>(`/meetings/${meetingId}/chat`);
+    const messages = response.data || [];
+    
+    // Convert string timestamps to Date objects
+    return messages.map(message => ({
+      ...message,
+      timestamp: message.timestamp ? new Date(message.timestamp) : new Date()
+    }));
   }
 
   async createPoll(meetingId: string, question: string, options: string[]): Promise<PollData> {
@@ -879,8 +992,14 @@ class ApiService {
   }
 
   async getTranscription(meetingId: string): Promise<TranscriptionEntry[]> {
-    const response = await this.request<TranscriptionEntry[]>(`/meetings/${meetingId}/transcription`);
-    return response.data || [];
+    const response = await this.request<any[]>(`/meetings/${meetingId}/transcription`);
+    const entries = response.data || [];
+    
+    // Convert string timestamps to Date objects
+    return entries.map(entry => ({
+      ...entry,
+      timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date()
+    }));
   }
 
   async exportMeetingData(meetingId: string, format: 'pdf' | 'excel' | 'video'): Promise<{ downloadUrl: string }> {

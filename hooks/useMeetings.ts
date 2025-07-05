@@ -95,7 +95,7 @@ export const useMeetings = () => {
     try {
       console.log('=== Starting Create Instant Meeting Process ===');
       
-      // Run authentication diagnosis first
+      // Run authentication diagnosis first  
       const authDiagnosis = await diagnoseAuth();
       console.log('Auth diagnosis result:', authDiagnosis);
 
@@ -104,6 +104,9 @@ export const useMeetings = () => {
       if (!isAuth) {
         throw new Error('Authentication required. Please log in again.');
       }
+
+      // Small delay to avoid rate limiting after diagnosis calls
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       console.log('Authentication verified, creating instant meeting...');
       const newMeeting = await apiService.createInstantMeeting();
@@ -119,6 +122,14 @@ export const useMeetings = () => {
     } catch (err) {
       console.error('=== Create Instant Meeting Failed ===');
       console.error('Error details:', err);
+      
+      // If it's a rate limit error, provide specific guidance
+      if (err instanceof Error && err.message.includes('Rate limit exceeded')) {
+        // Reset limiters and suggest retry
+        apiService.resetAllLimiters();
+        console.log('Rate limiters reset due to error');
+      }
+      
       throw err;
     }
   };

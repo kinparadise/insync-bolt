@@ -89,7 +89,7 @@ export default function MeetingsScreen() {
     try {
       console.log('Attempting to join meeting:', meeting.id, meeting.meetingId);
       await joinMeeting(meeting.id);
-      router.push(`/call/${meeting.meetingId}` as any);
+      router.push(`/call/${meeting.meetingId}_prejoin` as any);
     } catch (error) {
       console.error('Failed to join meeting:', error);
       
@@ -134,8 +134,8 @@ export default function MeetingsScreen() {
       // Join the meeting through the backend first
       const meeting = await joinMeetingByMeetingId(joinMeetingId.trim());
       
-      // Navigate to the call screen with the validated meeting ID
-      router.push(`/call/${meeting.meetingId}` as any);
+      // Navigate to the prejoin screen with the validated meeting ID
+      router.push(`/call/${meeting.meetingId}_prejoin` as any);
       setJoinMeetingId('');
     } catch (error) {
       console.error('Failed to join meeting by ID:', error);
@@ -821,39 +821,68 @@ export default function MeetingsScreen() {
               </View>
               
               <ScrollView style={styles.templatesScrollView}>
-                {meetingTemplates.map((template) => {
-                  const IconComponent = template.icon;
-                  return (
-                    <TouchableOpacity
-                      key={template.id}
-                      style={styles.templateCard}
-                      onPress={() => handleUseTemplate(template)}
-                    >
-                      <View style={[styles.templateIconContainer, { backgroundColor: template.color + '20' }]}>
-                        <IconComponent size={24} color={template.color} />
-                      </View>
-                      <View style={styles.templateInfo}>
-                        <View style={styles.templateHeader}>
-                          <Text style={styles.templateName}>{template.name}</Text>
-                          <View style={styles.templateCategory}>
-                            <Text style={styles.templateCategoryText}>{template.category}</Text>
+                {/* Icon mapping for template icons */}
+                {(() => {
+                  const iconMap = {
+                    Video,
+                    Calendar,
+                    Users,
+                    Plus,
+                    Hash,
+                    Play,
+                    Settings,
+                    FileText,
+                    X,
+                    Copy,
+                    CalendarDays,
+                    Search,
+                    Filter,
+                    Edit3,
+                    Trash2,
+                    Share,
+                    TrendingUp,
+                    Timer,
+                    Briefcase,
+                    GraduationCap,
+                    MessageCircle,
+                    Target,
+                    Eye,
+                    BarChart3,
+                  };
+                  return meetingTemplates.map((template) => {
+                    const IconComponent = iconMap[template.icon as keyof typeof iconMap] || Video; // fallback to Video
+                    return (
+                      <TouchableOpacity
+                        key={template.id}
+                        style={styles.templateCard}
+                        onPress={() => handleUseTemplate(template)}
+                      >
+                        <View style={[styles.templateIconContainer, { backgroundColor: template.color + '20' }]}> 
+                          <IconComponent size={24} color={template.color} />
+                        </View>
+                        <View style={styles.templateInfo}>
+                          <View style={styles.templateHeader}>
+                            <Text style={styles.templateName}>{template.name}</Text>
+                            <View style={styles.templateCategory}>
+                              <Text style={styles.templateCategoryText}>{template.category}</Text>
+                            </View>
+                          </View>
+                          <Text style={styles.templateDescription}>{template.description}</Text>
+                          <View style={styles.templateFooter}>
+                            <View style={styles.templateMeta}>
+                              <Clock size={12} color={theme.colors.textTertiary} />
+                              <Text style={styles.templateDuration}>{template.duration} min</Text>
+                            </View>
+                            <View style={styles.templateMeta}>
+                              <Users size={12} color={theme.colors.textTertiary} />
+                              <Text style={styles.templateParticipants}>{template.participants}</Text>
+                            </View>
                           </View>
                         </View>
-                        <Text style={styles.templateDescription}>{template.description}</Text>
-                        <View style={styles.templateFooter}>
-                          <View style={styles.templateMeta}>
-                            <Clock size={12} color={theme.colors.textTertiary} />
-                            <Text style={styles.templateDuration}>{template.duration} min</Text>
-                          </View>
-                          <View style={styles.templateMeta}>
-                            <Users size={12} color={theme.colors.textTertiary} />
-                            <Text style={styles.templateParticipants}>{template.participants}</Text>
-                          </View>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+                      </TouchableOpacity>
+                    );
+                  });
+                })()}
               </ScrollView>
             </View>
           </View>

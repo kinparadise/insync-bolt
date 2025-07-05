@@ -23,7 +23,7 @@ export default function JoinScreen() {
   };
 
   const handleJoinCall = () => {
-    router.push(`/call/${id}`);
+    router.push(`/call/${id}_prejoin`);
   };
 
   const styles = createStyles(theme);

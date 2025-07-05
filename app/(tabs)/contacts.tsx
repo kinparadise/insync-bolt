@@ -131,7 +131,7 @@ export default function ContactsScreen() {
 
   const handleStartCall = (contactId: string, isVideo: boolean = false) => {
     const callId = `call-${contactId}-${Date.now()}`;
-    router.push(`/call/${callId}` as any);
+    router.push(`/call/${callId}_prejoin` as any);
   };
 
   const handleSendInvite = () => {

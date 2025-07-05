@@ -188,13 +188,13 @@ export default function HomeScreen() {
     setHasNavigated(true);
     AsyncStorage.setItem('hasNavigated', 'true');
     const newCallId = 'instant-' + Date.now();
-    router.push(`/call/${newCallId}`);
+    router.push(`/call/${newCallId}_prejoin`);
   };
 
   const handleJoinCall = (callId: string) => {
     setHasNavigated(true);
     AsyncStorage.setItem('hasNavigated', 'true');
-    router.push(`/call/${callId}`);
+    router.push(`/call/${callId}_prejoin`);
   };
 
   const handleNavigateToTab = (tabName: string) => {

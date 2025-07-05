@@ -84,11 +84,17 @@ public class SecurityConfig {
             "http://10.232.200.20:8082",
             "exp://10.232.200.20:8082",
             "http://localhost:8082",
-            "http://localhost:3000"
+            "http://localhost:3000",
+            "http://localhost:19000",
+            "http://localhost:19001",
+            "http://localhost:19006",
+            "exp://localhost:19000",
+            "exp://localhost:19001"
         ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L); // Cache preflight response for 1 hour
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

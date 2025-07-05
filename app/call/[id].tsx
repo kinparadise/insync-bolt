@@ -12,6 +12,8 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function CallScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  // Strip '_prejoin' suffix if present to get the actual meeting ID
+  const meetingId = typeof id === 'string' ? id.replace(/_prejoin$/, '') : '';
   const { theme } = useTheme();
   const { user, ensureAuthenticated } = useAuth();
   
@@ -159,18 +161,18 @@ export default function CallScreen() {
   useEffect(() => {
     const fetchMeetingData = async () => {
       try {
-        if (id && typeof id === 'string') {
+        if (meetingId && meetingId.trim() !== '') {
           setIsLoadingMeeting(true);
           setMeetingError(null);
           
           // Join the meeting
-          const meeting = await apiService.joinMeetingByMeetingId(id);
+          const meeting = await apiService.joinMeetingByMeetingId(meetingId);
           setCurrentMeeting(meeting);
           setCallStartTime(new Date());
           setConnectionStatus('connected');
           
           // Fetch meeting participants
-          const participants = await apiService.getMeetingParticipants(id);
+          const participants = await apiService.getMeetingParticipants(meetingId);
           setCallParticipants(participants);
           
           // Convert to display format
@@ -188,25 +190,29 @@ export default function CallScreen() {
           setParticipants(displayParticipants);
           
           // Fetch chat messages
-          const messages = await apiService.getChatMessages(id);
-          setChatMessages(messages);
+          const messages = await apiService.getChatMessages(meetingId);
+          // Ensure all messages have proper structure
+          const validMessages = messages.filter(msg => 
+            msg && msg.id && msg.senderName && msg.message && msg.timestamp
+          );
+          setChatMessages(validMessages);
           
           // Fetch active polls
-          const activePolls = await apiService.getActivePolls(id);
+          const activePolls = await apiService.getActivePolls(meetingId);
           setPolls(activePolls);
           
           // Fetch breakout rooms
-          const rooms = await apiService.getBreakoutRooms(id);
+          const rooms = await apiService.getBreakoutRooms(meetingId);
           setBreakoutRooms(rooms);
           
           // Fetch transcription
-          const transcription = await apiService.getTranscription(id);
+          const transcription = await apiService.getTranscription(meetingId);
           setTranscriptionEntries(transcription);
           
           // Fetch meeting analytics (if host)
           if (meeting.host.id === user?.id) {
             try {
-              const analytics = await apiService.getMeetingAnalytics(id);
+              const analytics = await apiService.getMeetingAnalytics(meetingId);
               setMeetingAnalytics(analytics);
             } catch (error) {
               console.log('Analytics not available for non-host');
@@ -217,30 +223,54 @@ export default function CallScreen() {
         }
       } catch (error) {
         console.error('Failed to fetch meeting data:', error);
-        setMeetingError(error instanceof Error ? error.message : 'Failed to join meeting');
-        setConnectionStatus('failed');
-        Alert.alert(
-          'Meeting Error', 
-          'Could not connect to the meeting. Please check your connection and try again.',
-          [
-            { text: 'Retry', onPress: () => fetchMeetingData() },
-            { text: 'Leave', onPress: () => router.back() }
-          ]
-        );
+        
+        // Check if this is a rate limiting error
+        if (error instanceof Error && error.message.includes('Rate limit exceeded')) {
+          console.warn('Rate limit hit, checking API service status:', apiService.getLimiterStatus());
+          setMeetingError('Too many requests. Please wait a moment and try again.');
+          setConnectionStatus('failed');
+          
+          // Show rate limit specific alert
+          Alert.alert(
+            'Rate Limit Exceeded', 
+            'Please wait a moment before trying again. The system is preventing too many rapid requests.',
+            [
+              { 
+                text: 'Reset & Retry', 
+                onPress: () => {
+                  apiService.resetAllLimiters();
+                  setTimeout(() => fetchMeetingData(), 1000);
+                }
+              },
+              { text: 'Leave', onPress: () => router.back() }
+            ]
+          );
+        } else {
+          setMeetingError(error instanceof Error ? error.message : 'Failed to join meeting');
+          setConnectionStatus('failed');
+          Alert.alert(
+            'Meeting Error', 
+            'Could not connect to the meeting. Please check your connection and try again.',
+            [
+              { text: 'Retry', onPress: () => fetchMeetingData() },
+              { text: 'Leave', onPress: () => router.back() }
+            ]
+          );
+        }
       } finally {
         setIsLoadingMeeting(false);
       }
     };
 
     fetchMeetingData();
-  }, [id, user?.id]);
+  }, [meetingId, user?.id]);
 
   // Load and apply meeting settings
   useEffect(() => {
     const loadMeetingSettings = async () => {
       try {
-        if (id && typeof id === 'string') {
-          const settingsResponse = await apiService.getMeetingSettings(id);
+        if (meetingId && meetingId.trim() !== '') {
+          const settingsResponse = await apiService.getMeetingSettings(meetingId);
           const settings = settingsResponse.settings;
           
           // Apply meeting settings
@@ -275,7 +305,7 @@ export default function CallScreen() {
     };
 
     loadMeetingSettings();
-  }, [id]);
+  }, [meetingId]);
 
   // Real-time call duration tracking
   useEffect(() => {
@@ -324,8 +354,31 @@ export default function CallScreen() {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const formatTime = (date: Date): string => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatTime = (date: Date | string | undefined): string => {
+    if (!date) {
+      return '--:--';
+    }
+    
+    let dateObj: Date;
+    if (typeof date === 'string') {
+      dateObj = new Date(date);
+    } else if (date instanceof Date) {
+      dateObj = date;
+    } else {
+      return '--:--';
+    }
+    
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      return '--:--';
+    }
+    
+    try {
+      return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+      console.warn('Error formatting time:', error);
+      return '--:--';
+    }
   };
 
   const handleEndCall = () => {
@@ -383,8 +436,15 @@ export default function CallScreen() {
     if (chatMessage.trim() && id && typeof id === 'string') {
       try {
         const newMessage = await apiService.sendChatMessage(id, chatMessage);
-        setChatMessages(prev => [...prev, newMessage]);
-        setChatMessage('');
+        // Ensure the new message has all required properties
+        if (newMessage && newMessage.id && newMessage.senderName && newMessage.message && newMessage.timestamp) {
+          setChatMessages(prev => [...prev, newMessage]);
+          setChatMessage('');
+        } else {
+          console.warn('Received invalid message structure:', newMessage);
+          Alert.alert('Warning', 'Message sent but may not display correctly.');
+          setChatMessage('');
+        }
       } catch (error) {
         console.error('Failed to send message:', error);
         Alert.alert('Error', 'Failed to send message. Please try again.');
@@ -1010,12 +1070,18 @@ export default function CallScreen() {
               {chatMessages.map((message) => (
                 <View key={message.id} style={styles.chatMessage}>
                   <View style={styles.messageHeader}>
-                    <Text style={styles.messageSender}>{message.senderName}</Text>
+                    <Text style={styles.messageSender}>{message.senderName || 'Unknown'}</Text>
                     <Text style={styles.messageTime}>{formatTime(message.timestamp)}</Text>
                   </View>
-                  <Text style={styles.messageText}>{message.message}</Text>
+                  <Text style={styles.messageText}>{message.message || ''}</Text>
                 </View>
               ))}
+              {/* Show a message if no chat messages */}
+              {chatMessages.length === 0 && (
+                <View style={styles.chatMessage}>
+                  <Text style={styles.messageText}>No messages yet. Start the conversation!</Text>
+                </View>
+              )}
             </ScrollView>
             
             <View style={styles.chatInput}>

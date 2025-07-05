@@ -9,7 +9,9 @@ import { apiService } from '@/services/api';
 
 export default function PreJoinScreen() {
   const router = useRouter();
-  const { id: meetingId } = useLocalSearchParams();
+  const { id } = useLocalSearchParams();
+  // Strip '_prejoin' suffix if present
+  const meetingId = typeof id === 'string' ? id.replace(/_prejoin$/, '') : '';
   const { theme } = useTheme();
   const { user } = useAuth();
 

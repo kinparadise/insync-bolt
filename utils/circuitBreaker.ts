@@ -79,10 +79,10 @@ class CircuitBreaker {
   }
 }
 
-// Create circuit breakers for different API operations
-export const authCircuitBreaker = new CircuitBreaker(3, 30000, 60000);
-export const meetingsCircuitBreaker = new CircuitBreaker(5, 60000, 120000);
-export const generalApiCircuitBreaker = new CircuitBreaker(10, 30000, 60000);
+// Create circuit breakers for different API operations with adjusted settings for video calling app
+export const authCircuitBreaker = new CircuitBreaker(5, 30000, 60000); // 5 failures, 30s recovery, 1min window
+export const meetingsCircuitBreaker = new CircuitBreaker(8, 45000, 120000); // 8 failures, 45s recovery, 2min window  
+export const generalApiCircuitBreaker = new CircuitBreaker(15, 30000, 60000); // 15 failures, 30s recovery, 1min window
 
 // Utility to prevent rapid successive calls
 class RateLimiter {
@@ -109,5 +109,5 @@ class RateLimiter {
   }
 }
 
-export const authRateLimiter = new RateLimiter(2000); // 2 seconds between auth calls
-export const meetingsRateLimiter = new RateLimiter(1000); // 1 second between meeting calls
+export const authRateLimiter = new RateLimiter(1500); // 1.5 seconds between auth calls
+export const meetingsRateLimiter = new RateLimiter(500); // 0.5 seconds between meeting calls
