@@ -13,7 +13,7 @@ import { useMeetings } from '@/hooks/useMeetings';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateMeetingModal } from '@/components/CreateMeetingModal';
 import CalendarPickerModal from '@/components/CalendarPickerModal';
-import { MeetingDto, apiService } from '@/services/api';
+import { MeetingDto, apiService, MeetingTemplateDto } from '@/services/api';
 
 export default function MeetingsScreen() {
   const { theme } = useTheme();
@@ -34,80 +34,12 @@ export default function MeetingsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'GENERAL' | 'CLASSROOM' | 'BUSINESS' | 'ONE_ON_ONE'>('all');
+  const [meetingTemplates, setMeetingTemplates] = useState<MeetingTemplateDto[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<MeetingTemplateDto | null>(null);
   
   // Animation values
   const quickActionsHeight = useRef(new Animated.Value(1)).current;
   const quickActionsOpacity = useRef(new Animated.Value(1)).current;
-
-  // Meeting templates with enhanced design
-  const meetingTemplates = [
-    {
-      id: 'daily-standup',
-      name: 'Daily Standup',
-      description: 'Quick 15-minute sync for team alignment and progress updates',
-      duration: 15,
-      type: 'BUSINESS',
-      icon: Target,
-      color: '#10B981',
-      participants: '3-8 people',
-      category: 'Team Sync',
-    },
-    {
-      id: 'one-on-one',
-      name: 'One-on-One',
-      description: 'Private discussion for feedback, goals, and personal development',
-      duration: 30,
-      type: 'ONE_ON_ONE',
-      icon: MessageCircle,
-      color: '#8B5CF6',
-      participants: '2 people',
-      category: 'Performance',
-    },
-    {
-      id: 'project-review',
-      name: 'Project Review',
-      description: 'Comprehensive review of project deliverables and milestones',
-      duration: 60,
-      type: 'BUSINESS',
-      icon: BarChart3,
-      color: '#F59E0B',
-      participants: '4-10 people',
-      category: 'Project Management',
-    },
-    {
-      id: 'training-session',
-      name: 'Training Session',
-      description: 'Educational workshop for skill development and knowledge sharing',
-      duration: 90,
-      type: 'CLASSROOM',
-      icon: GraduationCap,
-      color: '#3B82F6',
-      participants: '5-20 people',
-      category: 'Learning',
-    },
-    {
-      id: 'team-retrospective',
-      name: 'Team Retrospective',
-      description: 'Reflect on past sprint performance and identify improvements',
-      duration: 45,
-      type: 'BUSINESS',
-      icon: Eye,
-      color: '#EF4444',
-      participants: '3-12 people',
-      category: 'Agile',
-    },
-    {
-      id: 'client-presentation',
-      name: 'Client Presentation',
-      description: 'Professional presentation of project updates to stakeholders',
-      duration: 60,
-      type: 'BUSINESS',
-      icon: Briefcase,
-      color: '#06B6D4',
-      participants: '2-15 people',
-      category: 'Client Relations',
-    },
-  ];
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -241,12 +173,10 @@ export default function MeetingsScreen() {
   const handleStartInstantMeeting = async () => {
     try {
       console.log('Starting instant meeting...');
-      
       // Create an instant meeting through the backend
       const meeting = await createInstantMeeting();
-      
-      // Navigate to the call screen with the new meeting ID
-      router.push(`/call/${meeting.meetingId}` as any);
+      // Navigate to the prejoin screen with the new meeting ID
+      router.push(`/call/${meeting.meetingId}_prejoin` as any);
     } catch (error) {
       console.error('Failed to start instant meeting:', error);
       
@@ -278,11 +208,10 @@ export default function MeetingsScreen() {
     }
   };
 
-  const handleUseTemplate = (template: any) => {
+  const handleUseTemplate = (template: MeetingTemplateDto) => {
+    setSelectedTemplate(template);
     setShowTemplatesModal(false);
     setShowCreateModal(true);
-    // Here you would pass the template data to the CreateMeetingModal
-    // For now, we'll just show the modal
   };
 
   const copyMeetingId = (meetingId: string) => {
@@ -404,7 +333,20 @@ export default function MeetingsScreen() {
     ]).start();
   }, [searchQuery]);
 
-  // Removed duplicate useEffect that was causing infinite loops
+  // Load meetings data
+  useEffect(() => {
+    const initializeData = async () => {
+      try {
+        // Load templates
+        const templates = await apiService.getMeetingTemplates();
+        setMeetingTemplates(templates);
+      } catch (error) {
+        console.error('Failed to load templates:', error);
+      }
+    };
+
+    initializeData();
+  }, []);
 
   return (
     <ThemedLinearGradient style={{ ...styles.container, height: usableHeight }}>
@@ -919,7 +861,11 @@ export default function MeetingsScreen() {
 
         <CreateMeetingModal 
           visible={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => {
+            setShowCreateModal(false);
+            setSelectedTemplate(null);
+          }}
+          template={selectedTemplate}
         />
         {selectedMeetingForCalendar && (
           <CalendarPickerModal 
@@ -1236,7 +1182,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -1249,12 +1195,17 @@ const createStyles = (theme: any) => StyleSheet.create({
     maxWidth: 400,
   },
   templatesModalContent: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 20,
     padding: 24,
     width: '100%',
     maxWidth: 400,
     maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1318,12 +1269,17 @@ const createStyles = (theme: any) => StyleSheet.create({
   templateCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   templateIcon: {
     fontSize: 24,
@@ -1333,21 +1289,22 @@ const createStyles = (theme: any) => StyleSheet.create({
     flex: 1,
   },
   templateName: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
+    fontSize: 18,
+    fontFamily: 'Inter-Bold',
     color: theme.colors.text,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   templateDescription: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontSize: 15,
+    fontFamily: 'Inter-Medium',
     color: theme.colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   templateDuration: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: theme.colors.textTertiary,
+    fontSize: 13,
+    fontFamily: 'Inter-Medium',
+    color: theme.colors.textSecondary,
   },
 
   // Professional Join Modal Styles
@@ -1742,12 +1699,17 @@ const createStyles = (theme: any) => StyleSheet.create({
 
   // Additional Template Modal Styles
   templateIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   templateHeader: {
     flexDirection: 'row',
@@ -1756,30 +1718,40 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginBottom: 8,
   },
   templateCategory: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: theme.colors.primary + '15',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + '30',
   },
   templateCategoryText: {
-    fontSize: 10,
-    fontFamily: 'Inter-Medium',
-    color: theme.colors.textTertiary,
+    fontSize: 11,
+    fontFamily: 'Inter-SemiBold',
+    color: theme.colors.primary,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   templateFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
   },
   templateMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   templateParticipants: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: theme.colors.textTertiary,
+    fontSize: 13,
+    fontFamily: 'Inter-Medium',
+    color: theme.colors.textSecondary,
   },
 });

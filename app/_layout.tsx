@@ -10,7 +10,7 @@ import {
   Inter_700Bold
 } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
-import { ThemeProvider } from '@/contexts/ThemeContext';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { View } from 'react-native';
@@ -18,7 +18,7 @@ import { View } from 'react-native';
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
-  const { theme } = require('@/contexts/ThemeContext').useTheme();
+  const { theme } = useTheme();
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,

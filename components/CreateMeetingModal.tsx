@@ -1,19 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, Alert, Platform } from 'react-native';
 import { X, Calendar, Clock, Users, Plus, ChevronDown } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useMeetings } from '@/hooks/useMeetings';
 import { useContacts } from '@/hooks/useContacts';
-import { CreateMeetingRequest, MeetingDto } from '@/services/api';
+import { CreateMeetingRequest, MeetingDto, MeetingTemplateDto } from '@/services/api';
 import CalendarPickerModal from '@/components/CalendarPickerModal';
 
 interface CreateMeetingModalProps {
   visible: boolean;
   onClose: () => void;
+  template?: MeetingTemplateDto | null;
 }
 
-export function CreateMeetingModal({ visible, onClose }: CreateMeetingModalProps) {
+export function CreateMeetingModal({ visible, onClose, template }: CreateMeetingModalProps) {
   const { theme } = useTheme();
   const { createMeeting } = useMeetings();
   const { allUsers } = useContacts();
@@ -41,6 +42,34 @@ export function CreateMeetingModal({ visible, onClose }: CreateMeetingModalProps
     { value: 'BUSINESS', label: 'Business Meeting' },
     { value: 'ONE_ON_ONE', label: 'One-on-One' },
   ] as const;
+
+  useEffect(() => {
+    if (template) {
+      setTitle(template.name);
+      setDescription(template.description);
+      setType(template.type);
+      
+      // Set duration based on template
+      const now = new Date();
+      const startTime = new Date(now);
+      startTime.setMinutes(now.getMinutes() + 5); // Start 5 minutes from now
+      
+      const endTime = new Date(startTime);
+      endTime.setMinutes(startTime.getMinutes() + template.duration);
+      
+      setStartDate(startTime);
+      setStartTime(startTime);
+      setEndTime(endTime);
+      
+      // Reset other fields
+      setSelectedParticipants([]);
+      setCustomParticipants([]);
+      setNewParticipantEmail('');
+      setAddToCalendar(true);
+      setShowCalendarModal(false);
+      setCreatedMeeting(null);
+    }
+  }, [template]);
 
   const handleCreateMeeting = async () => {
     if (!title.trim()) {

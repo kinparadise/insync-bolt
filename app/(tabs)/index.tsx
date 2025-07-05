@@ -41,6 +41,15 @@ export default function HomeScreen() {
   const greetingFadeAnim = useRef(new Animated.Value(1)).current;
   const { user } = useAuth();
 
+  // Safety check for theme
+  if (!theme) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#1a1a2e', justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: '#ffffff', fontSize: 16 }}>Loading...</Text>
+      </View>
+    );
+  }
+
   // Mock user and stats
   const userName = user?.name || 'User';
   const firstName = userName.split(' ')[0]; // Extract first name only

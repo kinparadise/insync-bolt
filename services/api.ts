@@ -70,6 +70,19 @@ export interface MeetingDto {
   createdAt: string;
 }
 
+export interface MeetingTemplateDto {
+  id: string;
+  name: string;
+  description: string;
+  duration: number; // in minutes
+  type: 'GENERAL' | 'CLASSROOM' | 'BUSINESS' | 'ONE_ON_ONE';
+  category: string;
+  icon: string;
+  color: string;
+  participants: string;
+  isDefault: boolean;
+}
+
 export interface MeetingParticipantDto {
   id: number;
   user: UserDto;
@@ -198,6 +211,35 @@ export interface TranscriptionEntry {
   text: string;
   timestamp: Date;
   confidence: number;
+}
+
+// Meeting Settings Interfaces
+export interface MeetingSettings {
+  muteAllParticipants: boolean;
+  enableWaitingRoom: boolean;
+  enableRecording: boolean;
+  hostAudioMuted: boolean;
+  hostVideoOff: boolean;
+  allowScreenSharing: boolean;
+  allowChat: boolean;
+  allowReactions: boolean;
+  allowPolls: boolean;
+  allowBreakoutRooms: boolean;
+  maxParticipants: number;
+  meetingPassword?: string;
+  autoRecord: boolean;
+  transcriptionEnabled: boolean;
+}
+
+export interface UpdateMeetingSettingsRequest {
+  meetingId: string;
+  settings: Partial<MeetingSettings>;
+}
+
+export interface MeetingSettingsResponse {
+  meetingId: string;
+  settings: MeetingSettings;
+  updatedAt: string;
 }
 
 class ApiService {
@@ -543,10 +585,13 @@ class ApiService {
   }
 
   async getUpcomingMeetings(): Promise<MeetingDto[]> {
-    return meetingsCircuitBreaker.execute(async () => {
-      const response = await this.request<MeetingDto[]>('/meetings/upcoming');
-      return response.data || [];
-    });
+    const response = await this.request<MeetingDto[]>('/meetings/upcoming');
+    return response.data || [];
+  }
+
+  async getMeetingTemplates(): Promise<MeetingTemplateDto[]> {
+    const response = await this.request<MeetingTemplateDto[]>('/meetings/templates');
+    return response.data || [];
   }
 
   // Action Items
@@ -847,6 +892,39 @@ class ApiService {
       return response.data;
     }
     throw new Error('Failed to export meeting data');
+  }
+
+  // Meeting Settings APIs
+  async updateMeetingSettings(meetingId: string, settings: Partial<MeetingSettings>): Promise<MeetingSettingsResponse> {
+    const response = await this.request<MeetingSettingsResponse>(`/meetings/${meetingId}/settings`, {
+      method: 'PUT',
+      body: JSON.stringify({ settings }),
+    });
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to update meeting settings');
+  }
+
+  async getMeetingSettings(meetingId: string): Promise<MeetingSettingsResponse> {
+    const response = await this.request<MeetingSettingsResponse>(`/meetings/${meetingId}/settings`);
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to get meeting settings');
+  }
+
+  async applyHostSettings(meetingId: string, settings: {
+    muteAll: boolean;
+    waitingRoom: boolean;
+    recording: boolean;
+    hostMuted: boolean;
+    hostVideoOff: boolean;
+  }): Promise<ApiResponse> {
+    return this.request(`/meetings/${meetingId}/host-settings`, {
+      method: 'POST',
+      body: JSON.stringify(settings),
+    });
   }
 }
 

@@ -8,6 +8,11 @@ import BusinessScreen from '../screens/business';
 export default function TabLayout() {
   const { theme } = useTheme();
 
+  // Safety check for theme
+  if (!theme) {
+    return null; // Return null while theme is loading
+  }
+
   return (
     <>
       <Tabs

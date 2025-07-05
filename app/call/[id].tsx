@@ -15,6 +15,15 @@ export default function CallScreen() {
   const { theme } = useTheme();
   const { user, ensureAuthenticated } = useAuth();
   
+  // Safety check for theme
+  if (!theme) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#1a1a2e', justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: '#ffffff', fontSize: 16 }}>Loading...</Text>
+      </View>
+    );
+  }
+  
   // Meeting data and backend integration
   const [meeting, setMeeting] = useState<MeetingDto | null>(null);
   const [callParticipants, setCallParticipants] = useState<CallParticipant[]>([]);
@@ -134,133 +143,11 @@ export default function CallScreen() {
     { id: '8', name: 'David Chen', avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2' },
   ]);
 
-  // Mock meeting data for summary
-  const [meetingData] = useState({
-    id: id as string,
-    title: 'Team Standup Meeting',
-    startTime: new Date(Date.now() - 45 * 60 * 1000), // 45 minutes ago
-    endTime: new Date(),
-    totalDuration: 45,
-    hostName: 'Emily Johnson',
-    participants: [
-      {
-        id: '1',
-        name: 'Emily Johnson',
-        email: 'emily@company.com',
-        joinTime: new Date(Date.now() - 45 * 60 * 1000),
-        leaveTime: new Date(),
-        totalDuration: 45,
-        speakingTime: 12,
-        cameraOnTime: 45,
-        micOnTime: 43,
-        messagesCount: 8,
-        engagementScore: 92,
-        avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
-      },
-      {
-        id: '2',
-        name: 'Jason Miller',
-        email: 'jason@company.com',
-        joinTime: new Date(Date.now() - 43 * 60 * 1000),
-        leaveTime: new Date(),
-        totalDuration: 43,
-        speakingTime: 8,
-        cameraOnTime: 40,
-        micOnTime: 41,
-        messagesCount: 5,
-        engagementScore: 78,
-        avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
-      },
-      {
-        id: '3',
-        name: 'Megan Davis',
-        email: 'megan@company.com',
-        joinTime: new Date(Date.now() - 40 * 60 * 1000),
-        leaveTime: new Date(),
-        totalDuration: 40,
-        speakingTime: 15,
-        cameraOnTime: 38,
-        micOnTime: 39,
-        messagesCount: 12,
-        engagementScore: 88,
-        avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
-      },
-      {
-        id: '4',
-        name: 'Alex Thompson',
-        email: 'alex@company.com',
-        joinTime: new Date(Date.now() - 35 * 60 * 1000),
-        leaveTime: new Date(),
-        totalDuration: 35,
-        speakingTime: 6,
-        cameraOnTime: 30,
-        micOnTime: 33,
-        messagesCount: 3,
-        engagementScore: 65,
-        avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
-      },
-    ],
-    totalMessages: 28,
-    recordingUrl: 'https://example.com/recording',
-    transcriptUrl: 'https://example.com/transcript',
-    keyTopics: [
-      'Sprint planning for Q1',
-      'Budget allocation discussion',
-      'Team performance review',
-      'New hiring requirements',
-      'Client feedback analysis'
-    ],
-    actionItems: [
-      'Finalize Q1 roadmap by Friday',
-      'Schedule interviews for developer positions',
-      'Prepare client presentation for next week',
-      'Update project timeline documentation',
-      'Review and approve marketing budget'
-    ],
-    decisions: [
-      'Approved hiring of 2 additional developers',
-      'Increased marketing budget by 15%',
-      'Moved product launch to Q2',
-      'Implemented new code review process'
-    ],
-    nextMeetingScheduled: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next week
-  });
+  // Meeting data for summary (will be populated from backend)
+  const [meetingData, setMeetingData] = useState<any>(null);
 
-  // Mock participants data
-  const participants = [
-    {
-      id: '1',
-      name: 'Emily Johnson',
-      avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
-      isMuted: false,
-      isVideoOn: true,
-      isHost: true,
-    },
-    {
-      id: '2',
-      name: 'Jason Miller',
-      avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
-      isMuted: true,
-      isVideoOn: true,
-      isHost: false,
-    },
-    {
-      id: '3',
-      name: 'Megan Davis',
-      avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
-      isMuted: false,
-      isVideoOn: false,
-      isHost: false,
-    },
-    {
-      id: '4',
-      name: 'You',
-      avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
-      isMuted: isMuted,
-      isVideoOn: isVideoOn,
-      isHost: false,
-    },
-  ];
+  // Participants data (will be populated from backend)
+  const [participants, setParticipants] = useState<any[]>([]);
 
   // Real meeting data and backend integration
   const [currentMeeting, setCurrentMeeting] = useState<MeetingDto | null>(null);
@@ -273,17 +160,64 @@ export default function CallScreen() {
     const fetchMeetingData = async () => {
       try {
         if (id && typeof id === 'string') {
-          // Try to get meeting by meeting ID first
+          setIsLoadingMeeting(true);
+          setMeetingError(null);
+          
+          // Join the meeting
           const meeting = await apiService.joinMeetingByMeetingId(id);
           setCurrentMeeting(meeting);
-          setRealParticipants(meeting.participants || []);
           setCallStartTime(new Date());
           setConnectionStatus('connected');
+          
+          // Fetch meeting participants
+          const participants = await apiService.getMeetingParticipants(id);
+          setCallParticipants(participants);
+          
+          // Convert to display format
+          const displayParticipants = participants.map(participant => ({
+            id: participant.id.toString(),
+            name: participant.name,
+            avatar: participant.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(participant.name)}&background=random`,
+            isMuted: participant.isMuted || false,
+            isVideoOn: participant.isVideoOn || false,
+            isHost: participant.user?.id === meeting.host.id,
+            isHandRaised: participant.isHandRaised || false,
+            isScreenSharing: participant.isScreenSharing || false,
+            connectionQuality: participant.connectionQuality || 'excellent',
+          }));
+          setParticipants(displayParticipants);
+          
+          // Fetch chat messages
+          const messages = await apiService.getChatMessages(id);
+          setChatMessages(messages);
+          
+          // Fetch active polls
+          const activePolls = await apiService.getActivePolls(id);
+          setPolls(activePolls);
+          
+          // Fetch breakout rooms
+          const rooms = await apiService.getBreakoutRooms(id);
+          setBreakoutRooms(rooms);
+          
+          // Fetch transcription
+          const transcription = await apiService.getTranscription(id);
+          setTranscriptionEntries(transcription);
+          
+          // Fetch meeting analytics (if host)
+          if (meeting.host.id === user?.id) {
+            try {
+              const analytics = await apiService.getMeetingAnalytics(id);
+              setMeetingAnalytics(analytics);
+            } catch (error) {
+              console.log('Analytics not available for non-host');
+            }
+          }
           
           console.log('Successfully joined meeting:', meeting.title);
         }
       } catch (error) {
         console.error('Failed to fetch meeting data:', error);
+        setMeetingError(error instanceof Error ? error.message : 'Failed to join meeting');
         setConnectionStatus('failed');
         Alert.alert(
           'Meeting Error', 
@@ -293,10 +227,54 @@ export default function CallScreen() {
             { text: 'Leave', onPress: () => router.back() }
           ]
         );
+      } finally {
+        setIsLoadingMeeting(false);
       }
     };
 
     fetchMeetingData();
+  }, [id, user?.id]);
+
+  // Load and apply meeting settings
+  useEffect(() => {
+    const loadMeetingSettings = async () => {
+      try {
+        if (id && typeof id === 'string') {
+          const settingsResponse = await apiService.getMeetingSettings(id);
+          const settings = settingsResponse.settings;
+          
+          // Apply meeting settings
+          if (settings) {
+            // Apply host audio/video settings
+            if (settings.hostAudioMuted !== undefined) {
+              setIsMuted(settings.hostAudioMuted);
+            }
+            if (settings.hostVideoOff !== undefined) {
+              setIsVideoOn(!settings.hostVideoOff);
+            }
+            
+            // Apply meeting-wide settings
+            if (settings.enableRecording !== undefined) {
+              setIsRecording(settings.enableRecording);
+            }
+            
+            // Store settings for use in the call
+            setMeetingSecurity({
+              waitingRoom: settings.enableWaitingRoom || false,
+              endToEndEncryption: true, // Always enabled
+              recordingNotification: settings.enableRecording || false,
+            });
+            
+            console.log('Applied meeting settings:', settings);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load meeting settings:', error);
+        // Continue with default settings
+      }
+    };
+
+    loadMeetingSettings();
   }, [id]);
 
   // Real-time call duration tracking
@@ -312,16 +290,19 @@ export default function CallScreen() {
   }, [callStartTime, connectionStatus]);
 
   // Real participants with backend data
-  const participantsWithRealData = realParticipants.length > 0 
-    ? realParticipants.map(participant => ({
+  const participantsWithRealData = participants.length > 0 
+    ? participants
+    : callParticipants.map(participant => ({
         id: participant.id.toString(),
-        name: participant.user.name,
-        avatar: participant.user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(participant.user.name)}&background=random`,
-        isMuted: Math.random() > 0.7, // Mock audio state
-        isVideoOn: Math.random() > 0.3, // Mock video state
-        isHost: participant.user.id === currentMeeting?.host.id,
-      }))
-    : participants; // Fall back to mock data if no real participants
+        name: participant.name,
+        avatar: participant.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(participant.name)}&background=random`,
+        isMuted: participant.isMuted || false,
+        isVideoOn: participant.isVideoOn || false,
+        isHost: participant.isHost || false,
+        isHandRaised: participant.isHandRaised || false,
+        isScreenSharing: participant.isScreenSharing || false,
+        connectionQuality: participant.connectionQuality || 'excellent',
+      }));
 
   // Timer for call duration
   useEffect(() => {
@@ -365,21 +346,49 @@ export default function CallScreen() {
     );
   };
 
+  // Update call state and sync with backend
+  const updateCallState = async (updates: Partial<CallStateUpdate>) => {
+    if (id && typeof id === 'string') {
+      try {
+        await apiService.updateCallState(id, {
+          participantId: user?.id || 0,
+          ...updates,
+        });
+        
+        // Update local state
+        if (updates.isMuted !== undefined) {
+          setIsMuted(updates.isMuted);
+        }
+        if (updates.isVideoOn !== undefined) {
+          setIsVideoOn(updates.isVideoOn);
+        }
+        if (updates.isHandRaised !== undefined) {
+          setIsHandRaised(updates.isHandRaised);
+        }
+        if (updates.isScreenSharing !== undefined) {
+          setShowScreenShare(updates.isScreenSharing);
+        }
+      } catch (error) {
+        console.error('Failed to update call state:', error);
+      }
+    }
+  };
+
   const handleSummaryClose = () => {
     setShowSummary(false);
     router.back();
   };
 
-  const handleSendMessage = () => {
-    if (chatMessage.trim()) {
-      const newMessage = {
-        id: Date.now().toString(),
-        sender: 'You',
-        message: chatMessage.trim(),
-        timestamp: new Date(),
-      };
-      setChatMessages(prev => [...prev, newMessage]);
-      setChatMessage('');
+  const handleSendMessage = async () => {
+    if (chatMessage.trim() && id && typeof id === 'string') {
+      try {
+        const newMessage = await apiService.sendChatMessage(id, chatMessage);
+        setChatMessages(prev => [...prev, newMessage]);
+        setChatMessage('');
+      } catch (error) {
+        console.error('Failed to send message:', error);
+        Alert.alert('Error', 'Failed to send message. Please try again.');
+      }
     }
   };
 
@@ -393,14 +402,30 @@ export default function CallScreen() {
     Alert.alert('Screen Share', 'Screen sharing stopped.');
   };
 
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    Alert.alert('Recording Started', 'This meeting is now being recorded. All participants have been notified.');
+  const handleStartRecording = async () => {
+    if (id && typeof id === 'string') {
+      try {
+        await apiService.startRecording(id);
+        setIsRecording(true);
+        Alert.alert('Recording Started', 'This meeting is now being recorded. All participants have been notified.');
+      } catch (error) {
+        console.error('Failed to start recording:', error);
+        Alert.alert('Error', 'Failed to start recording. Only the host can start recording.');
+      }
+    }
   };
 
-  const handleStopRecording = () => {
-    setIsRecording(false);
-    Alert.alert('Recording Stopped', 'Meeting recording has been saved and will be available shortly.');
+  const handleStopRecording = async () => {
+    if (id && typeof id === 'string') {
+      try {
+        await apiService.stopRecording(id);
+        setIsRecording(false);
+        Alert.alert('Recording Stopped', 'Meeting recording has been saved and will be available shortly.');
+      } catch (error) {
+        console.error('Failed to stop recording:', error);
+        Alert.alert('Error', 'Failed to stop recording. Only the host can stop recording.');
+      }
+    }
   };
 
   const handleInviteParticipants = () => {
@@ -416,31 +441,29 @@ export default function CallScreen() {
   };
 
   // Breakout room functions
-  const handleCreateBreakoutRoom = () => {
+  const handleCreateBreakoutRoom = async () => {
     if (!newRoomName.trim()) {
       Alert.alert('Error', 'Please enter a room name');
       return;
     }
 
-    const newRoom = {
-      id: Date.now().toString(),
-      name: newRoomName,
-      participants: autoAssign ? getRandomParticipants(parseInt(roomCapacity)) : [],
-      isActive: true,
-      capacity: parseInt(roomCapacity),
-      createdAt: new Date(),
-      topic: 'Discussion',
-    };
-
-    setBreakoutRooms(prev => [...prev, newRoom]);
-    setNewRoomName('');
-    setRoomCapacity('4');
-    setShowCreateBreakout(false);
-    
-    Alert.alert(
-      'Breakout Room Created', 
-      `"${newRoom.name}" has been created successfully!${autoAssign ? ' Participants have been automatically assigned.' : ''}`
-    );
+    if (id && typeof id === 'string') {
+      try {
+        const newRoom = await apiService.createBreakoutRoom(id, newRoomName, parseInt(roomCapacity));
+        setBreakoutRooms(prev => [...prev, newRoom]);
+        setNewRoomName('');
+        setRoomCapacity('4');
+        setShowCreateBreakout(false);
+        
+        Alert.alert(
+          'Breakout Room Created', 
+          `"${newRoom.name}" has been created successfully!`
+        );
+      } catch (error) {
+        console.error('Failed to create breakout room:', error);
+        Alert.alert('Error', 'Failed to create breakout room. Only the host can create breakout rooms.');
+      }
+    }
   };
 
   const getRandomParticipants = (count: number) => {
@@ -448,26 +471,42 @@ export default function CallScreen() {
     return shuffled.slice(0, Math.min(count, shuffled.length));
   };
 
-  const handleJoinBreakoutRoom = (roomId: string, roomName: string) => {
-    setCurrentBreakoutRoom(roomId);
-    setIsInBreakoutRoom(true);
-    setShowBreakoutRooms(false);
-    setShowMoreOptions(false);
-    
-    Alert.alert(
-      'Joined Breakout Room',
-      `You have joined "${roomName}". You can return to the main room at any time.`,
-      [
-        { text: 'OK' },
-        { text: 'Return to Main Room', onPress: handleReturnToMainRoom }
-      ]
-    );
+  const handleJoinBreakoutRoom = async (roomId: string, roomName: string) => {
+    if (id && typeof id === 'string') {
+      try {
+        await apiService.joinBreakoutRoom(id, roomId);
+        setCurrentBreakoutRoom(roomId);
+        setIsInBreakoutRoom(true);
+        setShowBreakoutRooms(false);
+        setShowMoreOptions(false);
+        
+        Alert.alert(
+          'Joined Breakout Room',
+          `You have joined "${roomName}". You can return to the main room at any time.`,
+          [
+            { text: 'OK' },
+            { text: 'Return to Main Room', onPress: handleReturnToMainRoom }
+          ]
+        );
+      } catch (error) {
+        console.error('Failed to join breakout room:', error);
+        Alert.alert('Error', 'Failed to join breakout room. Please try again.');
+      }
+    }
   };
 
-  const handleReturnToMainRoom = () => {
-    setCurrentBreakoutRoom(null);
-    setIsInBreakoutRoom(false);
-    Alert.alert('Returned to Main Room', 'You have returned to the main meeting room.');
+  const handleReturnToMainRoom = async () => {
+    if (id && typeof id === 'string' && currentBreakoutRoom) {
+      try {
+        await apiService.leaveBreakoutRoom(id, currentBreakoutRoom);
+        setCurrentBreakoutRoom(null);
+        setIsInBreakoutRoom(false);
+        Alert.alert('Returned to Main Room', 'You have returned to the main meeting room.');
+      } catch (error) {
+        console.error('Failed to leave breakout room:', error);
+        Alert.alert('Error', 'Failed to leave breakout room. Please try again.');
+      }
+    }
   };
 
   const handleDeleteBreakoutRoom = (roomId: string, roomName: string) => {
@@ -502,7 +541,7 @@ export default function CallScreen() {
   const handleAssignParticipant = (roomId: string, participant: any) => {
     setBreakoutRooms(prev => prev.map(room => 
       room.id === roomId 
-        ? { ...room, participants: [...room.participants, participant] }
+        ? { ...room, participantIds: [...room.participantIds, participant.id] }
         : room
     ));
     Alert.alert('Participant Assigned', `${participant.name} has been assigned to the room.`);
@@ -511,7 +550,7 @@ export default function CallScreen() {
   const handleRemoveParticipant = (roomId: string, participantId: string) => {
     setBreakoutRooms(prev => prev.map(room => 
       room.id === roomId 
-        ? { ...room, participants: room.participants.filter(p => p.id !== participantId) }
+        ? { ...room, participantIds: room.participantIds.filter(id => id !== parseInt(participantId)) }
         : room
     ));
   };
@@ -606,39 +645,37 @@ export default function CallScreen() {
     }
   };
 
-  const handleCreatePoll = (question: string, options: string[]) => {
-    const newPoll = {
-      id: Date.now().toString(),
-      question,
-      options: options.map((text, index) => ({
-        id: String.fromCharCode(97 + index),
-        text,
-        votes: 0,
-      })),
-      isActive: true,
-      createdBy: 'You',
-    };
-    setPolls(prev => [...prev, newPoll]);
-    setActivePoll(newPoll);
-    Alert.alert('Poll Created', 'Your poll has been shared with all participants.');
+  const handleCreatePoll = async (question: string, options: string[]) => {
+    if (id && typeof id === 'string') {
+      try {
+        const newPoll = await apiService.createPoll(id, question, options);
+        setPolls(prev => [...prev, newPoll]);
+        setActivePoll(newPoll);
+        Alert.alert('Poll Created', 'Your poll has been shared with all participants.');
+      } catch (error) {
+        console.error('Failed to create poll:', error);
+        Alert.alert('Error', 'Failed to create poll. Only the host can create polls.');
+      }
+    }
   };
 
-  const handleVotePoll = (pollId: string, optionId: string) => {
-    setPolls(prev => prev.map(poll => 
-      poll.id === pollId 
-        ? {
-            ...poll,
-            options: poll.options.map(option =>
-              option.id === optionId
-                ? { ...option, votes: option.votes + 1 }
-                : option
-            )
-          }
-        : poll
-    ));
+  const handleVotePoll = async (pollId: string, optionIndex: number) => {
+    if (id && typeof id === 'string') {
+      try {
+        await apiService.submitPollResponse(id, pollId, optionIndex);
+        Alert.alert('Vote Submitted', 'Your vote has been recorded.');
+      } catch (error) {
+        console.error('Failed to submit vote:', error);
+        Alert.alert('Error', 'Failed to submit vote. Please try again.');
+      }
+    }
   };
+
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [currentReaction, setCurrentReaction] = useState('😊');
 
   const handleSendReaction = (reaction: string) => {
+    setCurrentReaction(reaction);
     setShowReactions(true);
     // Animate reaction
     Animated.sequence([
@@ -653,7 +690,6 @@ export default function CallScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-    
     setTimeout(() => setShowReactions(false), 2000);
   };
 
@@ -686,17 +722,52 @@ export default function CallScreen() {
     }));
   };
 
-  const handleExportMeetingData = () => {
-    Alert.alert(
-      'Export Meeting Data',
-      'Choose export format:',
-      [
-        { text: 'PDF Report', onPress: () => Alert.alert('Export', 'PDF report generated successfully!') },
-        { text: 'Excel Analytics', onPress: () => Alert.alert('Export', 'Excel file with analytics exported!') },
-        { text: 'Video Recording', onPress: () => Alert.alert('Export', 'Video recording will be available shortly!') },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+  const handleExportMeetingData = async () => {
+    if (id && typeof id === 'string') {
+      Alert.alert(
+        'Export Meeting Data',
+        'Choose export format:',
+        [
+          { 
+            text: 'PDF Report', 
+            onPress: async () => {
+              try {
+                const result = await apiService.exportMeetingData(id, 'pdf');
+                Alert.alert('Export Success', `PDF report generated successfully!\nDownload URL: ${result.downloadUrl}`);
+              } catch (error) {
+                console.error('Failed to export PDF:', error);
+                Alert.alert('Export Error', 'Failed to generate PDF report. Only the host can export meeting data.');
+              }
+            }
+          },
+          { 
+            text: 'Excel Analytics', 
+            onPress: async () => {
+              try {
+                const result = await apiService.exportMeetingData(id, 'excel');
+                Alert.alert('Export Success', `Excel file with analytics exported!\nDownload URL: ${result.downloadUrl}`);
+              } catch (error) {
+                console.error('Failed to export Excel:', error);
+                Alert.alert('Export Error', 'Failed to generate Excel report. Only the host can export meeting data.');
+              }
+            }
+          },
+          { 
+            text: 'Video Recording', 
+            onPress: async () => {
+              try {
+                const result = await apiService.exportMeetingData(id, 'video');
+                Alert.alert('Export Success', `Video recording will be available shortly!\nDownload URL: ${result.downloadUrl}`);
+              } catch (error) {
+                console.error('Failed to export video:', error);
+                Alert.alert('Export Error', 'Failed to export video recording. Only the host can export meeting data.');
+              }
+            }
+          },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    }
   };
 
   const handleSecuritySettings = () => {
@@ -736,6 +807,13 @@ export default function CallScreen() {
     const interval = setInterval(checkNetworkQuality, 5000);
     return () => clearInterval(interval);
   }, [networkStats]);
+
+  // Available emoji reactions
+  const emojiReactions = [
+    '👍', '👎', '❤️', '😊', '😂', '😮', '😢', '😡', '👏', '🙌', 
+    '🤝', '💪', '🎉', '🎊', '🔥', '💯', '⭐', '🌟', '💡', '🚀',
+    '👀', '🤔', '😴', '🤯', '🥳', '😎', '🤩', '��', '🥰', '😋'
+  ];
 
   const styles = createStyles(theme);
 
@@ -820,7 +898,7 @@ export default function CallScreen() {
             {/* Mic Button */}
             <TouchableOpacity 
               style={[styles.googleMeetControlButton, isMuted && styles.googleMeetControlButtonMuted]}
-              onPress={() => setIsMuted(!isMuted)}
+              onPress={() => updateCallState({ isMuted: !isMuted })}
             >
               {isMuted ? (
                 <MicOff color="#ffffff" size={24} />
@@ -832,7 +910,7 @@ export default function CallScreen() {
             {/* Video Button */}
             <TouchableOpacity 
               style={[styles.googleMeetControlButton, !isVideoOn && styles.googleMeetControlButtonMuted]}
-              onPress={() => setIsVideoOn(!isVideoOn)}
+              onPress={() => updateCallState({ isVideoOn: !isVideoOn })}
             >
               {isVideoOn ? (
                 <Video color="#ffffff" size={24} />
@@ -844,7 +922,7 @@ export default function CallScreen() {
             {/* Reaction Button */}
             <TouchableOpacity 
               style={styles.googleMeetControlButton}
-              onPress={() => handleSendReaction('👍')}
+              onPress={() => setShowEmojiPicker(true)}
             >
               <Text style={styles.reactionButtonText}>😊</Text>
             </TouchableOpacity>
@@ -869,8 +947,8 @@ export default function CallScreen() {
 
         {/* Live Reactions Overlay */}
         {showReactions && (
-          <Animated.View style={[styles.reactionsOverlay, { opacity: fadeAnim }]}>
-            <Text style={styles.reactionEmoji}>👍</Text>
+          <Animated.View style={[styles.reactionsOverlay, { opacity: fadeAnim }]}> 
+            <Text style={styles.reactionEmoji}>{currentReaction}</Text>
           </Animated.View>
         )}
       </SafeAreaView>
@@ -932,7 +1010,7 @@ export default function CallScreen() {
               {chatMessages.map((message) => (
                 <View key={message.id} style={styles.chatMessage}>
                   <View style={styles.messageHeader}>
-                    <Text style={styles.messageSender}>{message.sender}</Text>
+                    <Text style={styles.messageSender}>{message.senderName}</Text>
                     <Text style={styles.messageTime}>{formatTime(message.timestamp)}</Text>
                   </View>
                   <Text style={styles.messageText}>{message.message}</Text>
@@ -1002,6 +1080,39 @@ export default function CallScreen() {
                 </View>
               ))}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Emoji Picker Modal */}
+      <Modal
+        visible={showEmojiPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowEmojiPicker(false)}
+      >
+        <View style={styles.emojiPickerOverlay}>
+          <View style={styles.emojiPickerPanel}>
+            <View style={styles.emojiPickerHeader}>
+              <Text style={styles.emojiPickerTitle}>Choose Reaction</Text>
+              <TouchableOpacity onPress={() => setShowEmojiPicker(false)}>
+                <X size={24} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.emojiGrid}>
+              {emojiReactions.map((emoji, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.emojiButton}
+                  onPress={() => {
+                    handleSendReaction(emoji);
+                    setShowEmojiPicker(false);
+                  }}
+                >
+                  <Text style={styles.emojiText}>{emoji}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         </View>
       </Modal>
@@ -2599,5 +2710,60 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   reactionButtonText: {
     fontSize: 28,
+  },
+  // Emoji Picker Styles
+  emojiPickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emojiPickerPanel: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 20,
+    padding: 20,
+    width: '80%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  emojiPickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  emojiPickerTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: theme.colors.text,
+  },
+  emojiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  emojiButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: theme.colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  emojiText: {
+    fontSize: 24,
   },
 });
