@@ -6,17 +6,19 @@ import { useState, useEffect, useRef } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { SocialAuthLoading } from '@/components/SocialAuthLoading';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { login, isRememberMeEnabled } = useAuth();
+  const { login, isRememberMeEnabled, signInWithGoogle, signInWithFacebook } = useAuth();
   const params = useLocalSearchParams();
   const passwordInputRef = useRef<TextInput>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [socialAuthLoading, setSocialAuthLoading] = useState<'google' | 'facebook' | null>(null);
   const [welcomeMessage, setWelcomeMessage] = useState('');
 
   // Load remember me preference
@@ -59,12 +61,28 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogleLogin = () => {
-    Alert.alert('Coming Soon', 'Google login will be available soon!');
+  const handleGoogleLogin = async () => {
+    setSocialAuthLoading('google');
+    try {
+      await signInWithGoogle();
+      router.replace('/(tabs)');
+    } catch (error) {
+      Alert.alert('Google Sign-In Failed', error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setSocialAuthLoading(null);
+    }
   };
 
-  const handleFacebookLogin = () => {
-    Alert.alert('Coming Soon', 'Facebook login will be available soon!');
+  const handleFacebookLogin = async () => {
+    setSocialAuthLoading('facebook');
+    try {
+      await signInWithFacebook();
+      router.replace('/(tabs)');
+    } catch (error) {
+      Alert.alert('Facebook Sign-In Failed', error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setSocialAuthLoading(null);
+    }
   };
 
   const styles = createStyles(theme);
@@ -149,14 +167,30 @@ export default function LoginScreen() {
 
           <Text style={styles.orText}>or</Text>
 
-          <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
-            <Globe color={theme.colors.text} size={20} />
-            <Text style={styles.socialButtonText}>Continue with Google</Text>
+          <TouchableOpacity 
+            style={[styles.socialButton, styles.googleButton]} 
+            onPress={handleGoogleLogin}
+            disabled={isLoading}
+          >
+            {socialAuthLoading === 'google' ? (
+              <ActivityIndicator color="#4285F4" size="small" style={{ marginRight: 8 }} />
+            ) : (
+              <Globe color="#4285F4" size={20} />
+            )}
+            <Text style={[styles.socialButtonText, styles.googleButtonText]}>Continue with Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.socialButton} onPress={handleFacebookLogin}>
-            <Facebook color={theme.colors.text} size={20} />
-            <Text style={styles.socialButtonText}>Continue with Facebook</Text>
+          <TouchableOpacity 
+            style={[styles.socialButton, styles.facebookButton]} 
+            onPress={handleFacebookLogin}
+            disabled={isLoading}
+          >
+            {socialAuthLoading === 'facebook' ? (
+              <ActivityIndicator color="#1877F2" size="small" style={{ marginRight: 8 }} />
+            ) : (
+              <Facebook color="#1877F2" size={20} />
+            )}
+            <Text style={[styles.socialButtonText, styles.facebookButtonText]}>Continue with Facebook</Text>
           </TouchableOpacity>
 
           <View style={styles.signupContainer}>
@@ -167,6 +201,11 @@ export default function LoginScreen() {
           </View>
         </View>
       </SafeAreaView>
+      
+      <SocialAuthLoading 
+        visible={socialAuthLoading !== null} 
+        provider={socialAuthLoading} 
+      />
     </ThemedLinearGradient>
   );
 }
@@ -294,6 +333,30 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontFamily: 'Inter-Medium',
     color: theme.colors.text,
     marginLeft: 12,
+  },
+  googleButton: {
+    backgroundColor: '#ffffff',
+    borderColor: '#dadce0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  googleButtonText: {
+    color: '#3c4043',
+  },
+  facebookButton: {
+    backgroundColor: '#ffffff',
+    borderColor: '#1877F2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  facebookButtonText: {
+    color: '#1877F2',
   },
   signupContainer: {
     flexDirection: 'row',

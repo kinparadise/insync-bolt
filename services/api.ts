@@ -19,6 +19,9 @@ export interface SignupRequest {
   password: string;
   phone?: string;
   department?: string;
+  socialId?: string;
+  socialProvider?: 'google' | 'facebook';
+  avatar?: string;
 }
 
 export interface JwtResponse {
@@ -240,6 +243,43 @@ export interface MeetingSettingsResponse {
   meetingId: string;
   settings: MeetingSettings;
   updatedAt: string;
+}
+
+// Call-related interfaces
+export interface CallDto {
+  id: number;
+  callId: string;
+  caller: UserDto;
+  receiver: UserDto;
+  type: 'AUDIO' | 'VIDEO';
+  status: 'PENDING' | 'RINGING' | 'ACCEPTED' | 'DECLINED' | 'MISSED' | 'ENDED' | 'CANCELLED';
+  createdAt: string;
+  startedAt?: string;
+  endedAt?: string;
+  durationSeconds?: number;
+  endReason?: string;
+}
+
+export interface InitiateCallRequest {
+  receiverId: number;
+  type: 'AUDIO' | 'VIDEO';
+}
+
+export interface CallActionRequest {
+  callId: string;
+  action: 'ACCEPTED' | 'DECLINED' | 'ENDED' | 'CANCELLED';
+  reason?: string;
+}
+
+export interface ContactDto {
+  id: number;
+  name: string;
+  email: string;
+  avatar?: string;
+  phone?: string;
+  department?: string;
+  status: 'ONLINE' | 'OFFLINE' | 'AWAY' | 'BUSY';
+  lastSeen?: string;
 }
 
 class ApiService {
@@ -560,11 +600,91 @@ class ApiService {
     return response;
   }
 
-  async forgotPassword(email: string): Promise<ApiResponse> {
-    return this.request('/auth/forgot-password', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    });
+  // Social Authentication Methods
+  async findUserBySocialId(socialId: string, provider: 'google' | 'facebook'): Promise<{ user: UserDto; token: string } | null> {
+    try {
+      const url = `${API_BASE_URL}/auth/social/user?socialId=${socialId}&provider=${provider}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.status === 404) {
+        return null; // User not found
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to find user');
+      }
+
+      return data;
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        // For development/demo purposes, return null when backend is not available
+        console.warn('Backend not available, treating as new user');
+        return null;
+      }
+      console.error('Find social user error:', error);
+      return null; // Treat as new user
+    }
+  }
+
+  async createSocialUser(userData: SignupRequest, accessToken: string): Promise<{ user: UserDto; token: string }> {
+    try {
+      const url = `${API_BASE_URL}/auth/social/signup`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Include social access token for verification
+      if (accessToken) {
+        headers['Social-Access-Token'] = accessToken;
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Social signup failed');
+      }
+
+      if (data.token && data.user) {
+        this.setToken(data.token);
+        return data;
+      }
+      
+      throw new Error('Invalid response format');
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        // For development/demo purposes, create a mock response
+        console.warn('Backend not available, creating mock social user');
+        const mockToken = 'mock_jwt_token_' + Math.random().toString(36).substr(2, 16);
+        const mockUser: UserDto = {
+          id: Math.floor(Math.random() * 1000),
+          name: userData.name,
+          email: userData.email,
+          avatar: userData.avatar,
+          phone: userData.phone,
+          department: userData.department || 'General',
+          status: 'ONLINE',
+          roles: ['USER'],
+          createdAt: new Date().toISOString(),
+        };
+        this.setToken(mockToken);
+        return { user: mockUser, token: mockToken };
+      }
+      console.error('Social user creation failed:', error);
+      throw error;
+    }
   }
 
   // User Management
@@ -1043,6 +1163,125 @@ class ApiService {
     return this.request(`/meetings/${meetingId}/host-settings`, {
       method: 'POST',
       body: JSON.stringify(settings),
+    });
+  }
+
+  // Call Management API
+  async initiateCall(request: InitiateCallRequest): Promise<CallDto> {
+    const response = await this.request<CallDto>('/calls/initiate', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to initiate call');
+  }
+
+  async acceptCall(callId: string): Promise<CallDto> {
+    const response = await this.request<CallDto>('/calls/accept', {
+      method: 'POST',
+      body: JSON.stringify({ callId, action: 'ACCEPTED' }),
+    });
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to accept call');
+  }
+
+  async declineCall(callId: string, reason?: string): Promise<CallDto> {
+    const response = await this.request<CallDto>('/calls/decline', {
+      method: 'POST',
+      body: JSON.stringify({ callId, action: 'DECLINED', reason }),
+    });
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to decline call');
+  }
+
+  async endCall(callId: string, reason?: string): Promise<CallDto> {
+    const response = await this.request<CallDto>('/calls/end', {
+      method: 'POST',
+      body: JSON.stringify({ callId, action: 'ENDED', reason }),
+    });
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to end call');
+  }
+
+  async cancelCall(callId: string, reason?: string): Promise<CallDto> {
+    const response = await this.request<CallDto>('/calls/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ callId, action: 'CANCELLED', reason }),
+    });
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to cancel call');
+  }
+
+  async getCall(callId: string): Promise<CallDto> {
+    const response = await this.request<CallDto>(`/calls/${callId}`);
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('Failed to get call');
+  }
+
+  async getCallHistory(): Promise<CallDto[]> {
+    const response = await this.request<CallDto[]>('/calls/history');
+    return response.data || [];
+  }
+
+  async getRecentCalls(hours: number = 24): Promise<CallDto[]> {
+    const response = await this.request<CallDto[]>(`/calls/recent?hours=${hours}`);
+    return response.data || [];
+  }
+
+  async getIncomingCalls(): Promise<CallDto[]> {
+    const response = await this.request<CallDto[]>('/calls/incoming');
+    return response.data || [];
+  }
+
+  async getCallHistoryWithUser(userId: number): Promise<CallDto[]> {
+    const response = await this.request<CallDto[]>(`/calls/history/${userId}`);
+    return response.data || [];
+  }
+
+  // Contact Management API
+  async getContacts(): Promise<ContactDto[]> {
+    const response = await this.request<ContactDto[]>('/contacts');
+    return response.data || [];
+  }
+
+  async addContact(userId: number): Promise<ApiResponse> {
+    return this.request(`/contacts/add/${userId}`, {
+      method: 'POST',
+    });
+  }
+
+  async removeContact(userId: number): Promise<ApiResponse> {
+    return this.request(`/contacts/remove/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getPendingContacts(): Promise<ContactDto[]> {
+    const response = await this.request<ContactDto[]>('/contacts/pending');
+    return response.data || [];
+  }
+
+  async acceptContact(userId: number): Promise<ApiResponse> {
+    return this.request(`/contacts/accept/${userId}`, {
+      method: 'POST',
+    });
+  }
+
+  async blockContact(userId: number): Promise<ApiResponse> {
+    return this.request(`/contacts/block/${userId}`, {
+      method: 'POST',
     });
   }
 }

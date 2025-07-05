@@ -57,7 +57,7 @@ export default function JoinScreen() {
           <View style={styles.previewContainer}>
             <View style={styles.videoPreview}>
               <Image 
-                source={user.avatar ? { uri: user.avatar } : require('../../assets/images/Insync logo.png')}
+                source={user && user.avatar ? { uri: user.avatar } : require('../../assets/images/Insync logo.png')}
                 style={styles.previewImage}
                 resizeMode="cover"
               />

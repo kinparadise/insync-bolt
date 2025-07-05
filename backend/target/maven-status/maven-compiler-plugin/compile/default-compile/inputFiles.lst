@@ -1,11 +1,14 @@
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\config\SecurityConfig.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\controller\AuthController.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\controller\CallController.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\controller\ContactController.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\controller\MeetingController.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\controller\NotificationController.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\controller\UserController.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\ActionItemDto.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\BreakoutRoomDto.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\CalendarEventDto.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\CallDto.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\CallParticipantDto.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\ChatMessageDto.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\MeetingAnalyticsDto.java
@@ -13,6 +16,7 @@ C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\Meeting
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\MeetingParticipantDto.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\MeetingTemplateDto.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\PollDto.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\CallActionRequest.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\CallStateUpdateRequest.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\ChatMessageRequest.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\CreateBreakoutRoomRequest.java
@@ -20,6 +24,7 @@ C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\CreatePollRequest.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\ExportRequest.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\HostSettingsRequest.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\InitiateCallRequest.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\JoinMeetingRequest.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\LoginRequest.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\request\MeetingSettingsRequest.java
@@ -33,6 +38,7 @@ C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\respons
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\TranscriptionEntryDto.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\dto\UserDto.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\entity\ActionItem.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\entity\Call.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\entity\Contact.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\entity\Meeting.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\entity\MeetingParticipant.java
@@ -42,6 +48,7 @@ C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\entity\Pass
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\entity\User.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\InsyncBackendApplication.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\repository\ActionItemRepository.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\repository\CallRepository.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\repository\ContactRepository.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\repository\MeetingParticipantRepository.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\repository\MeetingRepository.java
@@ -54,6 +61,7 @@ C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\security\Jw
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\security\JwtUtils.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\security\UserPrincipal.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\service\CalendarService.java
+C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\service\CallService.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\service\EmailService.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\service\MeetingService.java
 C:\Users\HomePC\Desktop\insync-bolt\backend\src\main\java\com\insync\service\NotificationService.java

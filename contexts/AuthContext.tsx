@@ -2,12 +2,13 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService, UserDto, LoginRequest, SignupRequest } from '@/services/api';
 import * as SecureStore from 'expo-secure-store';
+import { socialAuthService, SocialAuthUser } from '@/services/socialAuth';
 
 interface AuthContextType {
   user: UserDto | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (credentials: LoginRequest) => Promise<void>;
+  login: (credentials: LoginRequest, rememberMe?: boolean) => Promise<void>;
   signup: (userData: SignupRequest) => Promise<void>;
   createAccount: (userData: SignupRequest) => Promise<{ success: boolean; message: string; user: UserDto }>;
   logout: () => Promise<void>;
@@ -17,7 +18,10 @@ interface AuthContextType {
   refreshAuth: () => Promise<void>;
   ensureAuthenticated: () => Promise<boolean>;
   diagnoseAuth: () => Promise<any>;
-  // New enhanced persistence methods
+  // Social authentication methods
+  signInWithGoogle: () => Promise<void>;
+  signInWithFacebook: () => Promise<void>;
+  // Enhanced persistence methods
   enableRememberMe: (enabled: boolean) => Promise<void>;
   isRememberMeEnabled: () => Promise<boolean>;
   clearAllData: () => Promise<void>;
@@ -240,6 +244,92 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Social Authentication Methods
+  const signInWithGoogle = async () => {
+    try {
+      console.log('Attempting Google sign-in...');
+      
+      // Use mock for development, real auth for production
+      const socialUser = socialAuthService.isDevelopment() 
+        ? await socialAuthService.mockGoogleAuth()
+        : await socialAuthService.signInWithGoogle();
+      
+      if (socialUser) {
+        await handleSocialAuthSuccess(socialUser);
+      }
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+      throw error;
+    }
+  };
+
+  const signInWithFacebook = async () => {
+    try {
+      console.log('Attempting Facebook sign-in...');
+      
+      // Use mock for development, real auth for production
+      const socialUser = socialAuthService.isDevelopment()
+        ? await socialAuthService.mockFacebookAuth()
+        : await socialAuthService.signInWithFacebook();
+      
+      if (socialUser) {
+        await handleSocialAuthSuccess(socialUser);
+      }
+    } catch (error) {
+      console.error('Facebook sign-in error:', error);
+      throw error;
+    }
+  };
+
+  const handleSocialAuthSuccess = async (socialUser: SocialAuthUser) => {
+    try {
+      // Check if user exists in our system
+      const existingUser = await apiService.findUserBySocialId(socialUser.id, socialUser.provider);
+      
+      if (existingUser) {
+        // User exists, log them in
+        console.log('Existing social user found, logging in...');
+        apiService.setToken(existingUser.token);
+        
+        await Promise.all([
+          storeToken(existingUser.token, true), // Remember social logins
+          AsyncStorage.setItem(USER_KEY, JSON.stringify(existingUser.user)),
+          AsyncStorage.setItem(REMEMBER_ME_KEY, 'true'),
+        ]);
+        
+        setUser(existingUser.user);
+        await updateSessionInfo('login');
+      } else {
+        // New user, create account
+        console.log('New social user, creating account...');
+        const newUserData: SignupRequest = {
+          name: socialUser.name,
+          email: socialUser.email,
+          password: '', // Social users don't need passwords
+          socialId: socialUser.id,
+          socialProvider: socialUser.provider,
+          avatar: socialUser.picture,
+        };
+        
+        const createResult = await apiService.createSocialUser(newUserData, socialUser.accessToken);
+        
+        apiService.setToken(createResult.token);
+        
+        await Promise.all([
+          storeToken(createResult.token, true),
+          AsyncStorage.setItem(USER_KEY, JSON.stringify(createResult.user)),
+          AsyncStorage.setItem(REMEMBER_ME_KEY, 'true'),
+        ]);
+        
+        setUser(createResult.user);
+        await updateSessionInfo('login');
+      }
+    } catch (error) {
+      console.error('Social auth processing error:', error);
+      throw new Error('Failed to process social authentication');
+    }
+  };
+
   const updateUser = async (userData: Partial<UserDto>) => {
     try {
       const updatedUser = await apiService.updateCurrentUser(userData);
@@ -299,17 +389,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return true;
         }
       } catch (error) {
-        console.error('Failed to refresh token from storage:', error);
+        console.error('Token refresh failed:', error);
       }
     }
     
-    console.log('Authentication not available');
     return false;
   };
 
   const diagnoseAuth = async () => {
-    console.log('Running authentication diagnosis...');
-    return await apiService.diagnoseAuthentication();
+    try {
+      const storedToken = await getStoredToken();
+      const storedUser = await AsyncStorage.getItem(USER_KEY);
+      const currentToken = apiService.getToken();
+      const rememberMe = await AsyncStorage.getItem(REMEMBER_ME_KEY);
+      
+      return {
+        hasStoredToken: !!storedToken,
+        hasStoredUser: !!storedUser,
+        hasCurrentToken: !!currentToken,
+        hasUser: !!user,
+        isAuthenticated: !!user,
+        rememberMe: rememberMe === 'true',
+        tokenMatch: currentToken === storedToken,
+        sessionStartTime,
+      };
+    } catch (error) {
+      console.error('Auth diagnosis error:', error);
+      return {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
   };
 
   // New enhanced persistence methods
@@ -375,6 +484,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         refreshAuth,
         ensureAuthenticated,
         diagnoseAuth,
+        signInWithGoogle,
+        signInWithFacebook,
         enableRememberMe,
         isRememberMeEnabled,
         clearAllData,

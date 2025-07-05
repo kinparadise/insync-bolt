@@ -10,12 +10,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Dimensions } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import dayjs from 'dayjs';
-import { startInAppCall } from '@/components/InAppCallManager';
-import { InAppCallScreen } from '@/components/InAppCallManager';
+import { startInAppCall, useCallManager, InAppCallScreen } from '@/components/InAppCallManager';
+import { apiService } from '@/services/api';
+import { useContacts } from '@/hooks/useContacts';
 
 export default function ContactsScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const callManager = useCallManager();
+  const { contacts: backendContacts, isLoading: contactsLoading } = useContacts();
   const [searchQuery, setSearchQuery] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -29,10 +32,8 @@ export default function ContactsScreen() {
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [showCallOptions, setShowCallOptions] = useState(false);
   const [callTarget, setCallTarget] = useState<ContactType | null>(null);
-  const [showInAppCall, setShowInAppCall] = useState(false);
-  const [inAppCallContact, setInAppCallContact] = useState<ContactType | null>(null);
-  const [showSimpleVideoCall, setShowSimpleVideoCall] = useState(false);
-  const [videoCallContact, setVideoCallContact] = useState<ContactType | null>(null);
+  
+  // Convert backend contacts to local contact format, fallback to mock data
   const [contacts, setContacts] = useState<ContactType[]>([
     {
       id: '1',
@@ -85,6 +86,23 @@ export default function ContactsScreen() {
       phone: '+233 594707415',
     },
   ]);
+
+  // Update contacts when backend data is available
+  useEffect(() => {
+    if (backendContacts && backendContacts.length > 0) {
+      const mappedContacts: ContactType[] = backendContacts.map(contact => ({
+        id: contact.id.toString(),
+        name: contact.name,
+        email: contact.email,
+        status: contact.status.toLowerCase(),
+        avatar: contact.avatar,
+        department: contact.department || '',
+        lastSeen: contact.lastSeen || 'Unknown',
+        phone: contact.phone,
+      }));
+      setContacts(mappedContacts);
+    }
+  }, [backendContacts]);
 
   type ContactType = {
     id: string;
@@ -185,8 +203,7 @@ export default function ContactsScreen() {
   const handleInAppCall = () => {
     if (callTarget) {
       setShowCallOptions(false);
-      setInAppCallContact(callTarget);
-      setShowInAppCall(true);
+      callManager.initiateCall(callTarget, false);
     }
   };
 
@@ -312,10 +329,7 @@ export default function ContactsScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.actionButton}
-                    onPress={() => {
-                      setVideoCallContact(contact);
-                      setShowSimpleVideoCall(true);
-                    }}
+                    onPress={() => callManager.initiateCall(contact, true)}
                   >
                     <Video color={theme.colors.primary} size={20} />
                   </TouchableOpacity>
@@ -507,52 +521,8 @@ export default function ContactsScreen() {
           </View>
         </Modal>
 
-        {/* In-App Call Modal */}
-        <Modal
-          visible={showInAppCall && inAppCallContact !== null}
-          animationType="slide"
-          onRequestClose={() => setShowInAppCall(false)}
-        >
-          {inAppCallContact && (
-            <InAppCallScreen
-              channelName={`user1_${inAppCallContact.id}`}
-              contact={inAppCallContact}
-              onEnd={() => setShowInAppCall(false)}
-            />
-          )}
-        </Modal>
-
-        {/* Simple 1-to-1 Video Call Modal */}
-        <Modal
-          visible={showSimpleVideoCall && videoCallContact !== null}
-          animationType="slide"
-          onRequestClose={() => setShowSimpleVideoCall(false)}
-        >
-          <View style={{ flex: 1, backgroundColor: '#000' }}>
-            {/* Top bar with contact name */}
-            <View style={{ height: 90, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 2, paddingTop: 30}}>
-              <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold' }}>{videoCallContact?.name}</Text>
-            </View>
-            {/* Static image as video grid placeholder */}
-            <Image
-              source={require('../../assets/images/image.png')}
-              style={{ flex: 1, width: '100%', height: undefined, resizeMode: 'cover' }}
-              blurRadius={2}
-            />
-            {/* Remote video (contact avatar) as overlay */}
-            <View style={{ position: 'absolute', top: 80, right: 24, width: 96, height: 128, borderRadius: 16, backgroundColor: '#222', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', borderWidth: 2, borderColor: '#fff', zIndex: 3 }}>
-              <Image source={videoCallContact?.avatar ? { uri: videoCallContact.avatar } : require('../../assets/images/icon.png')} style={{ width: 96, height: 128, resizeMode: 'cover' }} />
-            </View>
-            {/* Hang up button */}
-            <TouchableOpacity
-              style={{ position: 'absolute', bottom: 48, alignSelf: 'center', backgroundColor: '#e53935', borderRadius: 32, padding: 20, zIndex: 4, elevation: 4 }}
-              onPress={() => setShowSimpleVideoCall(false)}
-              activeOpacity={0.85}
-            >
-              <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold' }}>Hang Up</Text>
-            </TouchableOpacity>
-          </View>
-        </Modal>
+        {/* In-App Call Interface */}
+        <InAppCallScreen />
       </SafeAreaView>
     </ThemedLinearGradient>
   );

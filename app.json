@@ -10,11 +10,13 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.insync.videocalling",
       "infoPlist": {
         "NSCalendarsUsageDescription": "This app needs access to your calendar to schedule meetings."
       }
     },
     "android": {
+      "package": "com.insync.videocalling",
       "permissions": ["READ_CALENDAR", "WRITE_CALENDAR"]
     },
     "web": {

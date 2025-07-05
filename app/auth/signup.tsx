@@ -6,11 +6,12 @@ import { useState } from 'react';
 import { ThemedLinearGradient } from '@/components/ThemedLinearGradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { SocialAuthLoading } from '@/components/SocialAuthLoading';
 
 export default function SignUpScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { createAccount } = useAuth();
+  const { createAccount, signInWithGoogle, signInWithFacebook } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -19,6 +20,7 @@ export default function SignUpScreen() {
   const [phone, setPhone] = useState('');
   const [enableFaceID, setEnableFaceID] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [socialAuthLoading, setSocialAuthLoading] = useState<'google' | 'facebook' | null>(null);
 
   const handleSignUp = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
@@ -69,12 +71,28 @@ export default function SignUpScreen() {
     }
   };
 
-  const handleGoogleSignUp = () => {
-    Alert.alert('Coming Soon', 'Google sign up will be available soon!');
+  const handleGoogleSignUp = async () => {
+    setSocialAuthLoading('google');
+    try {
+      await signInWithGoogle();
+      router.replace('/(tabs)');
+    } catch (error) {
+      Alert.alert('Google Sign-Up Failed', error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setSocialAuthLoading(null);
+    }
   };
 
-  const handleFacebookSignUp = () => {
-    Alert.alert('Coming Soon', 'Facebook sign up will be available soon!');
+  const handleFacebookSignUp = async () => {
+    setSocialAuthLoading('facebook');
+    try {
+      await signInWithFacebook();
+      router.replace('/(tabs)');
+    } catch (error) {
+      Alert.alert('Facebook Sign-Up Failed', error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setSocialAuthLoading(null);
+    }
   };
 
   const styles = createStyles(theme);
@@ -209,24 +227,24 @@ export default function SignUpScreen() {
           <Text style={styles.orText}>or</Text>
 
           <TouchableOpacity 
-            style={[styles.socialButton, isLoading && styles.socialButtonDisabled]} 
+            style={[styles.socialButton, styles.googleButton, (isLoading || socialAuthLoading) && styles.socialButtonDisabled]} 
             onPress={handleGoogleSignUp}
-            disabled={isLoading}
+            disabled={isLoading || socialAuthLoading !== null}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-              <Globe color={theme.colors.textSecondary} size={20} style={{ marginRight: 8 }} />
-              <Text style={styles.socialButtonText}>Continue with Google</Text>
+              <Globe color="#4285F4" size={20} style={{ marginRight: 8 }} />
+              <Text style={[styles.socialButtonText, styles.googleButtonText]}>Continue with Google</Text>
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.socialButton, isLoading && styles.socialButtonDisabled]} 
+            style={[styles.socialButton, styles.facebookButton, (isLoading || socialAuthLoading) && styles.socialButtonDisabled]} 
             onPress={handleFacebookSignUp}
-            disabled={isLoading}
+            disabled={isLoading || socialAuthLoading !== null}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-              <Facebook color={theme.colors.textSecondary} size={20} style={{ marginRight: 8 }} />
-              <Text style={styles.socialButtonText}>Continue with Facebook</Text>
+              <Facebook color="#1877F2" size={20} style={{ marginRight: 8 }} />
+              <Text style={[styles.socialButtonText, styles.facebookButtonText]}>Continue with Facebook</Text>
             </View>
           </TouchableOpacity>
 
@@ -238,6 +256,11 @@ export default function SignUpScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+      
+      <SocialAuthLoading 
+        visible={socialAuthLoading !== null} 
+        provider={socialAuthLoading} 
+      />
     </ThemedLinearGradient>
   );
 }
@@ -349,6 +372,30 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Medium',
     color: theme.colors.text,
+  },
+  googleButton: {
+    backgroundColor: '#ffffff',
+    borderColor: '#dadce0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  googleButtonText: {
+    color: '#3c4043',
+  },
+  facebookButton: {
+    backgroundColor: '#ffffff',
+    borderColor: '#1877F2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  facebookButtonText: {
+    color: '#1877F2',
   },
   loginContainer: {
     flexDirection: 'row',
